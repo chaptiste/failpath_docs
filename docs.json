@@ -3,22 +3,38 @@
   "name": "Failpath",
   "theme": "luma",
   "logo": {
-    "light": "https://media.brand.dev/22a2a9f0-c94f-4bb0-b1d1-a8399e8d4538.svg",
-    "dark": "https://media.brand.dev/22a2a9f0-c94f-4bb0-b1d1-a8399e8d4538.svg"
+    "light": "/images/failpath-logo-light.svg",
+    "dark": "/images/failpath-logo-dark.svg"
   },
-  "favicon": "https://media.brand.dev/ee9105b0-8d0c-41e8-bbf7-cf4889b3b518.png",
+  "favicon": "/images/failpath-favicon.svg",
+  "appearance": {
+    "default": "dark"
+  },
+  "background": {
+    "decoration": "grid",
+    "color": {
+      "light": "#fbfbfc",
+      "dark": "#050506"
+    }
+  },
   "colors": {
-    "primary": "#241c24",
-    "light": "#f4f4f4",
-    "dark": "#cb0404"
+    "primary": "#ef4444",
+    "light": "#f7f7f8",
+    "dark": "#dc2626"
   },
   "fonts": {
     "heading": {
-      "family": "Poppins"
+      "family": "Inter"
     },
     "body": {
-      "family": "Times New Roman"
+      "family": "Inter"
     }
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "styling": {
+    "codeblocks": "dark"
   },
   "navbar": {
     "primary": {
