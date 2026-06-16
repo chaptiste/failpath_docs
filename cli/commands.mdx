@@ -1,0 +1,94 @@
+---
+title: "Failpath CLI Commands Reference: init, publish, sync"
+sidebarTitle: "Commands"
+description: "Complete reference for all Failpath CLI commands: init, publish, and sync. Covers every flag, argument, and usage example for each command."
+---
+
+The Failpath CLI exposes three commands that cover the full lifecycle of managing flow definitions between your repository and the Failpath dashboard. Run any of them with `npx failpath <command>`, or drop the `npx failpath` prefix if you've installed the package globally.
+
+## init
+
+Use `init` to connect your repository to a Failpath project for the first time. The command writes your project key to a local `.env` file, adds that file to `.gitignore` so the key isn't committed, creates the `.failpath/` directory with an `AGENTS.md` guidance file, and pulls your project's current dashboard graph into `.failpath/flows.json`.
+
+```bash
+npx failpath init --project-key fp_project_xxx
+```
+
+<AccordionGroup>
+  <Accordion title="Options">
+    <ParamField query="--project-key" type="string" required>
+      Your Failpath project key. Find this in the Failpath dashboard under your project settings. The key is written to `.env` as `FAILPATH_PROJECT_KEY` and is read automatically by `publish` and `sync` on subsequent runs.
+    </ParamField>
+
+    <ParamField query="--endpoint" type="string">
+      Override the default API endpoint (`https://api.failpath.dev`). Use this only during local API development. For a persistent override, set `FAILPATH_DEV_ENDPOINT` in your shell instead.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+**What happens when you run it:**
+
+1. Creates or updates `.env` with `FAILPATH_PROJECT_KEY=<key>`
+2. Adds `.env` to `.gitignore` (creates the file if it doesn't exist)
+3. Creates `.failpath/AGENTS.md` with SDK integration guidance for AI coding agents
+4. Pulls the project's current dashboard graph into `.failpath/flows.json`
+
+<Note>
+  You only need to run `init` once per repository. After that, use `sync` to pull dashboard updates and `publish` to push local changes.
+</Note>
+
+---
+
+## publish
+
+Use `publish` to validate your local `.failpath/flows.json` and push any edits you've made back to the Failpath dashboard. Run this after editing your flow graph locally to keep the dashboard in sync with your repository.
+
+```bash
+npx failpath publish
+```
+
+<AccordionGroup>
+  <Accordion title="Options">
+    <ParamField query="--endpoint" type="string">
+      Override the default API endpoint (`https://api.failpath.dev`). Use this only during local API development. For a persistent override, set `FAILPATH_DEV_ENDPOINT` in your shell instead.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+**What happens when you run it:**
+
+1. Reads `FAILPATH_PROJECT_KEY` from your environment or `.env` file
+2. Validates the structure of `.failpath/flows.json`
+3. Pushes the validated graph to the Failpath dashboard
+
+<Warning>
+  `publish` will fail if `FAILPATH_PROJECT_KEY` is not set in your environment or `.env` file. Run `npx failpath init --project-key <key>` first to write the key.
+</Warning>
+
+---
+
+## sync
+
+Use `sync` to pull the latest version of your project's flow graph from the Failpath dashboard into `.failpath/flows.json`. Run this whenever you or a teammate has made changes in the dashboard that you want reflected in the repository.
+
+```bash
+npx failpath sync
+```
+
+<AccordionGroup>
+  <Accordion title="Options">
+    <ParamField query="--endpoint" type="string">
+      Override the default API endpoint (`https://api.failpath.dev`). Use this only during local API development. For a persistent override, set `FAILPATH_DEV_ENDPOINT` in your shell instead.
+    </ParamField>
+  </Accordion>
+</AccordionGroup>
+
+**What happens when you run it:**
+
+1. Reads `FAILPATH_PROJECT_KEY` from your environment or `.env` file
+2. Fetches the current graph from the Failpath dashboard
+3. Overwrites `.failpath/flows.json` with the latest graph
+
+<Tip>
+  Commit `.failpath/flows.json` to version control. Running `sync` before starting a new feature branch ensures your local flow definitions match what's live on the dashboard.
+</Tip>

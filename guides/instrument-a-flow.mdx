@@ -1,0 +1,115 @@
+---
+title: "Instrument a Backend Flow with Failpath End to End"
+sidebarTitle: "Instrument a Flow"
+description: "Walk through adding Failpath step instrumentation to a real backend function, from initializing the CLI to viewing events on your dashboard."
+---
+
+This guide walks you through instrumenting a backend function with Failpath from scratch. You will initialize the CLI, inspect the generated flow definition, install the SDK, create a client, wrap your business steps, and publish your flow so events appear on your dashboard.
+
+<Steps>
+  <Step title="Initialize your project">
+    Run the following command in the root of your backend repository, replacing `fp_project_xxx` with your actual project key:
+
+    ```bash
+    npx failpath init --project-key fp_project_xxx
+    ```
+
+    The `init` command does four things:
+
+    - Writes `FAILPATH_PROJECT_KEY` to a `.env` file
+    - Adds `.env` to your `.gitignore`
+    - Creates `.failpath/AGENTS.md`
+    - Pulls your project's current dashboard graph into `.failpath/flows.json`
+  </Step>
+
+  <Step title="Inspect .failpath/flows.json">
+    Open `.failpath/flows.json`. You will see one or more flow objects. Two fields are important when writing SDK code:
+
+    - **`flow.slug`** — pass this string as the first argument to `run()`. It identifies which flow a run belongs to.
+    - **`node.sdkStepKey`** — pass this string as the first argument to `step()`. It maps a recorded event to a specific node on your dashboard graph.
+
+    ```json
+    {
+      "flows": [
+        {
+          "slug": "checkout",
+          "nodes": [
+            { "sdkStepKey": "validate-cart", "label": "Validate Cart" },
+            { "sdkStepKey": "charge-card", "label": "Charge Card" },
+            { "sdkStepKey": "send-receipt-email", "label": "Send Receipt Email" }
+          ]
+        }
+      ]
+    }
+    ```
+
+    Keep this file open as a reference while you instrument your function.
+  </Step>
+
+  <Step title="Install @failpath/sdk">
+    Add the SDK to your project:
+
+    ```bash
+    npm install @failpath/sdk
+    ```
+  </Step>
+
+  <Step title="Create the client">
+    Create the Failpath client once at the module level and export it as a singleton. Importing the same instance across your codebase ensures that configuration — like `defaultMetadata` — is applied consistently everywhere.
+
+    ```typescript
+    // lib/failpath.ts
+    import { createFailpathClient } from "@failpath/sdk";
+
+    export const failpath = createFailpathClient({
+      projectKey: process.env.FAILPATH_PROJECT_KEY!,
+      defaultMetadata: { environment: "production" },
+    });
+    ```
+
+    The `projectKey` is read from the environment variable written by `npx failpath init`. In local development your `.env` file supplies it automatically.
+  </Step>
+
+  <Step title="Wrap your function steps">
+    Import your client and use `run()` to start a run, then wrap each business step with `step()`. Pass the `flow.slug` to `run()` and the matching `sdkStepKey` to each `step()` call. Reuse the same `runId` for every step that belongs to the same request.
+
+    ```typescript
+    import { failpath } from "./lib/failpath";
+
+    export async function handleCheckout(requestId: string) {
+      const run = failpath.run("checkout", {
+        runId: requestId,
+        metadata: { route: "/checkout" },
+      });
+
+      const cart = await run.step("validate-cart", async () => {
+        return validateCart();
+      });
+
+      const charge = await run.step("charge-card", async () => {
+        return chargeCard(cart);
+      });
+
+      await run.step("send-receipt-email", async () => {
+        return sendReceiptEmail(charge.receiptAddress);
+      });
+    }
+    ```
+
+    Each `step()` call sends a `running` event before the wrapped operation executes, then sends `success` or `error` when it finishes.
+
+    <Tip>
+      Wrap business steps like `validateCart`, `chargeCard`, and `sendReceiptEmail` — not tiny helpers, utility functions, or repository calls. Each wrapped step should represent a meaningful unit of work you want to track on your dashboard.
+    </Tip>
+  </Step>
+
+  <Step title="Publish and view your dashboard">
+    Push your local flow definition to Failpath:
+
+    ```bash
+    npx failpath publish
+    ```
+
+    Then trigger your function — call the endpoint, run the job, or fire the webhook — and open your Failpath dashboard. You will see the run appear with `success` or `error` status on each step node.
+  </Step>
+</Steps>

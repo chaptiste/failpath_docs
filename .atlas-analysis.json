@@ -1,0 +1,79 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Failpath",
+  "projectDescription": "Failpath lets you define flows with the CLI, instrument your backend with the SDK, and monitor runtime step events on a live dashboard.",
+  "theme": "luma",
+  "primaryColor": "#241c24",
+  "lightColor": "#f4f4f4",
+  "darkColor": "#cb0404",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/flows",
+              "concepts/runs-and-steps",
+              "concepts/events"
+            ]
+          },
+          {
+            "group": "CLI",
+            "pages": [
+              "cli/overview",
+              "cli/commands",
+              "cli/configuration"
+            ]
+          },
+          {
+            "group": "SDK",
+            "pages": [
+              "sdk/overview",
+              "sdk/client",
+              "sdk/runs-and-steps",
+              "sdk/options"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/instrument-a-flow",
+              "guides/metadata",
+              "guides/error-handling",
+              "guides/environments"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Define and publish flow graphs from your repository using the CLI",
+    "Instrument backend functions with step-level event recording",
+    "Automatic success/error status tracking per step",
+    "Rich metadata attachment to runs and steps",
+    "Skip steps explicitly without recording errors",
+    "Low-overhead fire-and-forget telemetry (never throws by default)",
+    "TypeScript-first SDK with built-in type declarations"
+  ],
+  "publicApiSurface": [
+    "createFailpathClient(options)",
+    "failpath.run(flowKey, options)",
+    "run.step(stepKey, fn, options)",
+    "run.skip(stepKey)",
+    "failpath.recordStep(options)",
+    "npx failpath init --project-key",
+    "npx failpath publish",
+    "npx failpath sync",
+    "FAILPATH_PROJECT_KEY env var"
+  ]
+}

@@ -1,0 +1,81 @@
+---
+title: "Attaching Metadata to Runs, Steps, and Clients in Failpath"
+sidebarTitle: "Metadata"
+description: "Add structured context to your Failpath runs and steps using metadata. Learn how to attach, merge, and use metadata safely across your flows."
+---
+
+Metadata lets you attach structured context to the events Failpath records, making it easier to correlate runs with specific users, requests, or application states on your dashboard. You can attach metadata at three levels — the client, a run, or an individual step — and Failpath merges them together on every event.
+
+## Metadata levels
+
+### 1. Client-level metadata
+
+Pass `defaultMetadata` to `createFailpathClient`. This object is merged into every event sent by this client instance, regardless of which flow or step it belongs to. Use it for values that are constant across all runs, like the deployment environment or service name.
+
+```typescript
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+  defaultMetadata: { environment: "production", service: "api" },
+});
+```
+
+### 2. Run-level metadata
+
+Pass `metadata` in the options object to `run()`. This metadata applies to all events within that run. Use it for request-scoped values that are known when the run starts, such as the authenticated user's ID or the route being handled.
+
+```typescript
+const run = failpath.run("checkout", {
+  runId: requestId,
+  metadata: { userId: user.id, route: "/checkout" },
+});
+```
+
+### 3. Step-level metadata
+
+Pass `metadata` in the options object to `step()`. This metadata applies only to that single step's events. Use it for values that are specific to the work happening inside that step.
+
+```typescript
+await run.step("validate-cart", async () => {
+  return validateCart();
+}, { metadata: { cartId: cart.id } });
+```
+
+## Full example
+
+The following example shows all three levels working together:
+
+```typescript
+import { createFailpathClient } from "@failpath/sdk";
+
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+  defaultMetadata: { environment: "production", service: "api" },
+});
+
+export async function handleCheckout(requestId: string, user: User, cart: Cart) {
+  const run = failpath.run("checkout", {
+    runId: requestId,
+    metadata: { userId: user.id, route: "/checkout" },
+  });
+
+  await run.step("validate-cart", async () => {
+    return validateCart();
+  }, { metadata: { cartId: cart.id } });
+}
+```
+
+Every event recorded during this run will carry `{ environment, service, userId, route }`. The `validate-cart` step will additionally carry `{ cartId }`.
+
+## What to include in metadata
+
+Good metadata candidates include values that help you understand the context of a run without exposing sensitive information:
+
+- **Request ID** — correlate Failpath events with your own logs
+- **User ID** — identify which user triggered the run
+- **Route or job name** — understand which endpoint or task produced the run
+- **Environment** — distinguish production from staging events
+- **Feature flags** — record which flags were active during the run
+
+<Warning>
+  Never include secrets, tokens, auth headers, full request bodies, payment data, or private customer data in metadata. Metadata is transmitted to and stored by Failpath — treat it the same way you would treat values written to an external log aggregator.
+</Warning>

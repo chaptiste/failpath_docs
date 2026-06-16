@@ -1,0 +1,142 @@
+---
+title: "Failpath SDK: Complete Configuration Options Reference"
+sidebarTitle: "Options"
+description: "Full reference for all Failpath SDK configuration options, including project key, metadata, error handling, and custom fetch support."
+---
+
+This page is the complete configuration reference for the Failpath SDK. It covers every option accepted by `createFailpathClient()`, the `run()` method, the `step()` method, and `recordStep()`. Use this as a quick lookup when you need to know a type, default value, or the exact behaviour of a particular option.
+
+## `createFailpathClient()` options
+
+Pass these options to `createFailpathClient()` when you initialise the SDK client.
+
+<ParamField path="projectKey" type="string" required>
+  Your Failpath project key. Identifies which project receives the telemetry events your application sends. Always read this from an environment variable rather than hardcoding it.
+
+  ```typescript
+  createFailpathClient({ projectKey: process.env.FAILPATH_PROJECT_KEY! });
+  ```
+</ParamField>
+
+<ParamField path="defaultMetadata" type="object">
+  A plain object merged into the metadata of every event the client sends — runs, steps, and skips alike. Use it for properties that apply globally, such as environment name or service identifier.
+
+  **Default:** `undefined`
+
+  ```typescript
+  createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    defaultMetadata: { env: "production", service: "api" },
+  });
+  ```
+</ParamField>
+
+<ParamField path="endpoint" type="string" default="https://api.failpath.dev">
+  Overrides the URL the SDK sends events to. This option is intended for local Failpath API development only. Do not set it in production.
+</ParamField>
+
+<ParamField path="enabled" type="boolean" default="true">
+  Controls whether the SDK sends any events. Set to `false` to silently disable all telemetry. Wrapped functions still execute and return values normally; only the send calls are skipped. Useful in test and CI environments.
+</ParamField>
+
+<ParamField path="captureStack" type="boolean" default="false">
+  When `true`, the SDK attaches the stack trace of any caught error to the outbound error event. Keep this disabled (the default) if your errors might contain sensitive data or if stack traces are prohibitively large.
+</ParamField>
+
+<ParamField path="throwOnSendError" type="boolean" default="false">
+  When `true`, the SDK throws if a telemetry send request fails. The default (`false`) means telemetry failures are swallowed and do not affect your application. Only enable this when strict delivery guarantees are required.
+</ParamField>
+
+<ParamField path="onError" type="(err: unknown) => void">
+  A callback invoked whenever a telemetry send request fails. Use this alongside `throwOnSendError: false` to route SDK errors into your logging or alerting infrastructure without disrupting your application.
+
+  **Default:** `undefined`
+
+  ```typescript
+  createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    onError: (err) => logger.warn("Failpath telemetry error", { err }),
+  });
+  ```
+</ParamField>
+
+<ParamField path="fetch" type="(input: RequestInfo, init?: RequestInit) => Promise<Response>">
+  A custom `fetch` implementation. Supply this when your runtime lacks a native `fetch` global — for example, Node.js versions before 18 — or when you need to proxy outbound requests. The signature must match the standard `fetch` API.
+
+  **Default:** `globalThis.fetch`
+
+  ```typescript
+  import fetch from "node-fetch";
+
+  createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    fetch,
+  });
+  ```
+</ParamField>
+
+---
+
+## `failpath.run()` options
+
+Pass these options as the second argument to `failpath.run(flowKey, options)`.
+
+<ParamField path="runId" type="string">
+  A unique identifier that correlates every step belonging to the same request, job, or webhook invocation. Failpath uses this value to group steps into a single trace in the dashboard. Reuse the same `runId` for every `step()` call within one execution.
+
+  **Default:** auto-generated
+
+  Good sources for a `runId`: an HTTP request ID header, a job ID from your queue, or a webhook delivery ID from the upstream service.
+</ParamField>
+
+<ParamField path="metadata" type="object">
+  Arbitrary key/value pairs attached to this run. Merged with `defaultMetadata` from the client. Use this for data that applies to the whole execution but not to every event globally — for example, the request route or the authenticated user ID.
+
+  **Default:** `undefined`
+</ParamField>
+
+---
+
+## `run.step()` options
+
+Pass these options as the third argument to `run.step(stepKey, fn, options)`.
+
+<ParamField path="metadata" type="object">
+  Arbitrary key/value pairs attached to this specific step event. Use this for data relevant only to this operation — for example, the ID of the entity being processed.
+
+  **Default:** `undefined`
+
+  ```typescript
+  await run.step("validate-cart", () => validateCart(), {
+    metadata: { cartId: "cart_123" },
+  });
+  ```
+</ParamField>
+
+---
+
+## `failpath.recordStep()` parameters
+
+Pass these as a single options object to `failpath.recordStep(options)`. All four parameters are required.
+
+<ParamField path="flowKey" type="string" required>
+  The slug of the flow this step belongs to. Must match the `flow.slug` value in `.failpath/flows.json`.
+</ParamField>
+
+<ParamField path="runId" type="string" required>
+  The run ID that groups this step with others in the same execution. Use the same value you used when calling `failpath.run()` for this execution.
+</ParamField>
+
+<ParamField path="stepKey" type="string" required>
+  The key identifying this step within the flow. Must match the `sdkStepKey` of the corresponding node in `.failpath/flows.json`.
+</ParamField>
+
+<ParamField path="status" type='"running" | "success" | "error"' required>
+  The status to record for this step event. Send `running` when the operation begins and then `success` or `error` when it completes, or send a terminal status directly if you are recording after the fact.
+</ParamField>
+
+---
+
+<Warning>
+  Never include secrets, API tokens, authentication headers, full request or response bodies, payment card data, or private customer information in any metadata field — whether on the client, run, or step. Metadata values are transmitted to and stored by Failpath.
+</Warning>

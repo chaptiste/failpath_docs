@@ -1,0 +1,70 @@
+---
+title: "Handling App Errors and Telemetry Failures in Failpath"
+sidebarTitle: "Error Handling"
+description: "Understand how Failpath captures and rethrows step errors, and how to handle telemetry send failures without disrupting your application."
+---
+
+Failpath distinguishes between two categories of errors: application errors that originate inside your wrapped steps, and telemetry errors that occur when the SDK tries to send events to Failpath. Understanding how each is handled lets you keep your application logic clean while still getting visibility into failures.
+
+## Application errors
+
+When the function you pass to `step()` throws, the SDK automatically records an `error` event — capturing the error message and, if you have enabled `captureStack`, the stack trace — and then rethrows the original error unchanged. Your existing `try`/`catch` blocks, error boundaries, and error-handling middleware continue to work exactly as they did before you added instrumentation.
+
+```typescript
+// If validateCart() throws, Failpath records the error and rethrows it
+const cart = await run.step("validate-cart", async () => {
+  return validateCart(); // throws CartEmptyError
+});
+// CartEmptyError is rethrown here — your try/catch still works
+```
+
+<Tip>
+  You do not need to catch errors inside a `step()` callback just to report them to Failpath. Let them bubble naturally. The SDK handles recording before rethrowing, so your error-handling code higher in the call stack receives the original error with its original type and message intact.
+</Tip>
+
+## Telemetry errors
+
+Sending events to Failpath is a network operation and can fail. By default, the SDK swallows telemetry errors so that a Failpath outage or network blip never disrupts your application. You have three options for controlling this behavior.
+
+### Silent by default (`throwOnSendError: false`)
+
+The default behavior. Telemetry send errors are suppressed entirely. Your application continues to run as if the SDK were not present.
+
+### Log errors with `onError`
+
+Provide an `onError` callback to receive telemetry errors without causing them to propagate. This is the recommended approach for production — you get observability into SDK failures without any risk of impacting your users.
+
+```typescript
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+  onError: (err) => logger.warn("Failpath send error", err),
+});
+```
+
+### Throw on send errors (`throwOnSendError: true`)
+
+Set `throwOnSendError: true` if you want the SDK to throw when a telemetry send fails. This is useful in integration tests or CI pipelines where you want to detect SDK misconfiguration early, but it is not recommended for production use.
+
+```typescript
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+  throwOnSendError: true,
+});
+```
+
+## Capturing stack traces
+
+By default, `captureStack` is `false` and stack traces are not included in error events. Set it to `true` if you want the full stack trace attached to every error event the SDK records:
+
+```typescript
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+  captureStack: true,
+});
+```
+
+Stack traces increase payload size, so consider enabling this selectively — for example, only in staging environments where debugging detail is more valuable.
+
+<Note>
+  Set `enabled: false` in test environments to prevent the SDK from sending any telemetry at all. When disabled, `step()` still executes the wrapped function and returns its result — only the event sending is skipped. This makes it safe to run your test suite without needing a real project key or network access.
+</Note>

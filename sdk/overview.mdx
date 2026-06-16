@@ -1,0 +1,98 @@
+---
+title: "Failpath SDK: Instrument Your Backend in TypeScript"
+sidebarTitle: "Overview"
+description: "The @failpath/sdk package lets you wrap backend functions with step instrumentation, automatically recording success and error events for your flows."
+---
+
+The Failpath SDK gives you a lightweight, TypeScript-first way to instrument your backend flows. Wrap any async operation with `step()` and the SDK automatically fires `running`, `success`, and `error` events to Failpath — no manual try/catch bookkeeping required. You keep full control over your business logic; the SDK handles the telemetry.
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @failpath/sdk
+```
+
+```bash yarn
+yarn add @failpath/sdk
+```
+
+```bash pnpm
+pnpm add @failpath/sdk
+```
+
+</CodeGroup>
+
+## Quick start
+
+The following example covers the full lifecycle: creating a client, starting a run, and instrumenting two steps inside a checkout handler.
+
+```typescript
+import { createFailpathClient } from "@failpath/sdk";
+
+// Create a single client instance for your project
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+  defaultMetadata: { env: "production" },
+});
+
+export async function handleCheckout(requestId: string) {
+  // Start a run — reuse one runId for every step in the same request
+  const run = failpath.run("checkout", {
+    runId: requestId,
+    metadata: { route: "/checkout" },
+  });
+
+  // Wrap each business operation with step()
+  const cart = await run.step("validate-cart", async () => {
+    return validateCart();
+  });
+
+  await run.step("charge-card", async () => {
+    return chargeCard(cart);
+  });
+
+  // Explicitly skip an optional step
+  await run.skip("send-receipt-email");
+}
+```
+
+Each `step()` call sends a `running` event before your function executes, then sends `success` or `error` when it completes. If the wrapped function throws, the SDK records the error and rethrows the original exception so your application error handling remains intact.
+
+## Feature highlights
+
+<CardGroup cols={2}>
+  <Card title="TypeScript-first" icon="code">
+    Full type declarations are included in the package. No separate `@types` install needed.
+  </Card>
+  <Card title="Fire-and-forget telemetry" icon="bolt">
+    Telemetry sends are non-blocking by default. A failed send never crashes your handler unless you opt in with `throwOnSendError`.
+  </Card>
+  <Card title="Automatic error capture" icon="circle-exclamation">
+    When a wrapped step throws, the SDK records the error event and rethrows the original error — no extra try/catch required.
+  </Card>
+  <Card title="Skip support" icon="forward">
+    Use `run.skip()` to mark a step as intentionally skipped, keeping your flow trace complete even when a branch is not taken.
+  </Card>
+  <Card title="Rich metadata" icon="tag">
+    Attach arbitrary metadata at the client, run, or step level. Client-level `defaultMetadata` is merged into every event automatically.
+  </Card>
+  <Card title="Custom fetch" icon="plug">
+    Supply your own `fetch` implementation for runtimes that lack a native one, such as older Node.js versions or edge environments.
+  </Card>
+</CardGroup>
+
+## Explore the SDK
+
+<CardGroup cols={3}>
+  <Card title="Client" icon="wrench" href="/sdk/client">
+    Configure `createFailpathClient()` with your project key, metadata defaults, and error handling options.
+  </Card>
+  <Card title="Runs & Steps" icon="list-check" href="/sdk/runs-and-steps">
+    Learn how to start a run, instrument steps, skip branches, and record events manually.
+  </Card>
+  <Card title="Options" icon="sliders" href="/sdk/options">
+    Full reference for every configuration option across the client, run, step, and `recordStep` APIs.
+  </Card>
+</CardGroup>

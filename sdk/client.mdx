@@ -1,0 +1,82 @@
+---
+title: "createFailpathClient: Initializing the Failpath SDK Client"
+sidebarTitle: "Client"
+description: "Create a Failpath client with createFailpathClient(). Configure your project key, metadata defaults, error handling, and custom fetch options."
+---
+
+`createFailpathClient()` is the entry point for the Failpath SDK. Call it once with your project key and any global defaults, then export the resulting client so every part of your application shares the same instance. The client is the object from which you create runs and record steps.
+
+## Basic usage
+
+```typescript
+import { createFailpathClient } from "@failpath/sdk";
+
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+});
+```
+
+<Tip>
+  Create your client at module level and export it as a singleton. Importing the same instance across your codebase ensures that `defaultMetadata` and other settings are applied consistently to every event your application sends.
+</Tip>
+
+## Configuration options
+
+<ParamField path="projectKey" type="string" required>
+  Your Failpath project key, found in the Failpath dashboard. This value identifies which project receives the events you send. Use an environment variable rather than a hardcoded string to avoid committing your key to source control.
+</ParamField>
+
+<ParamField path="defaultMetadata" type="object">
+  A plain object whose key/value pairs are merged into the metadata of every event the client sends. Use this for properties that apply globally — such as environment name, service name, or deployment region — so you don't have to repeat them on every run or step.
+
+  ```typescript
+  const failpath = createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    defaultMetadata: { env: "production", service: "checkout-api" },
+  });
+  ```
+</ParamField>
+
+<ParamField path="endpoint" type="string" default="https://api.failpath.dev">
+  Overrides the API endpoint the client sends events to. This option exists for local Failpath API development only — do not set it in production deployments.
+</ParamField>
+
+<ParamField path="enabled" type="boolean" default="true">
+  Set to `false` to disable all event sending. When disabled, `step()` still executes the wrapped function and returns its result normally; it simply skips the telemetry calls. Use this to silence the SDK in environments where you do not want data sent.
+</ParamField>
+
+<ParamField path="captureStack" type="boolean" default="false">
+  When `true`, the SDK includes the stack trace from any error caught inside a `step()` call in the outbound error event. Disable this (the default) if your error objects contain sensitive data or if stack traces are too large to send efficiently.
+</ParamField>
+
+<ParamField path="throwOnSendError" type="boolean" default="false">
+  When `true`, the SDK throws an error if a telemetry send request fails. The default (`false`) means telemetry failures are silent — your application continues normally even if Failpath is unreachable. Only enable this if you need strict delivery guarantees in a controlled environment.
+</ParamField>
+
+<ParamField path="onError" type="(err: unknown) => void">
+  A callback invoked whenever a telemetry send request fails. Use this to route SDK errors into your own logging or alerting system without enabling `throwOnSendError`.
+
+  ```typescript
+  const failpath = createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    onError: (err) => logger.warn("Failpath send error", { err }),
+  });
+  ```
+</ParamField>
+
+<ParamField path="fetch" type="(input: RequestInfo, init?: RequestInit) => Promise<Response>">
+  A custom `fetch` implementation. Supply this when your runtime does not have a native `fetch` global — for example, older versions of Node.js — or when you need to route requests through a proxy. The function signature must match the standard `fetch` API.
+
+  ```typescript
+  import fetch from "node-fetch";
+
+  const failpath = createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    fetch,
+  });
+  ```
+</ParamField>
+
+<Note>
+  Set `enabled: false` in your test environment to prevent test runs from sending events to Failpath. You can do this by reading an environment variable: `enabled: process.env.NODE_ENV !== "test"`. Your wrapped functions continue to execute and return values normally, so your tests remain unaffected.
+</Note>

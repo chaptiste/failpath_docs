@@ -1,0 +1,57 @@
+---
+title: "Failpath CLI Configuration and Environment Variables"
+sidebarTitle: "Configuration"
+description: "Configure the Failpath CLI with environment variables. Set your project key and optional endpoint overrides for local development."
+---
+
+The Failpath CLI reads its configuration from environment variables, with `init` writing the essentials to a `.env` file in your project root for convenience. There are two variables to know about: one required, one optional. Both are also read by the Failpath SDK, so a single `.env` file covers local development end-to-end.
+
+## Environment Variables
+
+### `FAILPATH_PROJECT_KEY`
+
+Your project key is the only required configuration value. The `init` command writes it to `.env` automatically, but you can also set it manually or inject it in CI.
+
+```bash .env
+FAILPATH_PROJECT_KEY=fp_project_xxx
+```
+
+`publish` and `sync` both read this value from your environment (or `.env`) at runtime. You don't need to pass it as a flag on every command — `init` handles the one-time setup.
+
+<Warning>
+  Never commit your project key to version control. The `init` command adds `.env` to your `.gitignore` automatically. If you set the key another way, make sure the file or environment that holds it is excluded from your repository.
+</Warning>
+
+### `FAILPATH_DEV_ENDPOINT`
+
+This variable lets you point the CLI at a locally running Failpath API instead of the default production endpoint (`https://api.failpath.dev`). It's intended exclusively for development on the Failpath API itself and is not needed for normal use.
+
+```bash
+export FAILPATH_DEV_ENDPOINT=http://localhost:3001
+```
+
+Setting this variable in your shell is equivalent to passing `--endpoint <url>` to every CLI command. Use whichever approach fits your workflow — the `--endpoint` flag is handy for one-off overrides, while the environment variable is more convenient when you're running the API server locally for an extended session.
+
+<Note>
+  `FAILPATH_DEV_ENDPOINT` is never required for production use. Leave it unset and the CLI uses `https://api.failpath.dev`.
+</Note>
+
+## The `.failpath/` Directory
+
+Running `init` creates a `.failpath/` directory at your project root with two files:
+
+```text
+.failpath/
+├── flows.json   # The project's flow graph definition
+└── AGENTS.md    # Guidance for AI coding agents integrating Failpath
+```
+
+**`flows.json`** is the serialised flow graph for your project. `sync` overwrites it with the latest dashboard state, and `publish` reads it to push local edits back. Commit this file so your entire team works from the same flow definition.
+
+**`AGENTS.md`** is written for AI coding agents such as Copilot or Cursor. It explains how to read `flows.json` and use the `flow.slug` and `sdkStepKey` values to instrument your application code with the Failpath SDK. You don't need to edit it manually — treat it as generated documentation for your AI tooling.
+
+## Deployment Environments
+
+<Note>
+  The `.env` file in your repository is read by the Failpath CLI during local development. It is **not** automatically available to deployed backends. If you're running your application on a platform like Convex, Vercel, or Railway, you must set `FAILPATH_PROJECT_KEY` separately in that platform's environment variable dashboard. The SDK reads the variable from the runtime environment, not from a file.
+</Note>

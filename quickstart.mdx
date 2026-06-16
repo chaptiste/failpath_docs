@@ -1,0 +1,90 @@
+---
+title: "Failpath Quickstart: Instrument and Publish Your First Flow"
+sidebarTitle: "Quick Start"
+description: "Initialize Failpath in your repo, instrument a backend function with the TypeScript SDK, and publish your first monitored flow to the dashboard."
+---
+
+This guide walks you through everything you need to go from zero to a live, monitored flow on the Failpath dashboard. By the end, your backend functions will be sending real-time step events that you can watch and debug from a single place.
+
+<Steps>
+  <Step title="Create a project">
+    Sign in to [app.failpath.dev](https://app.failpath.dev) and create a new project. Once the project is created, copy your project key — it looks like `fp_project_xxx`. You'll use it in the next step to connect your repository.
+  </Step>
+  <Step title="Initialize your repository">
+    Run `failpath init` at the root of your repository, passing your project key:
+
+    ```bash
+    npx failpath init --project-key fp_project_xxx
+    ```
+
+    The `init` command sets up everything Failpath needs in your repo:
+
+    | File | What it does |
+    |------|--------------|
+    | `.env` | Writes `FAILPATH_PROJECT_KEY=fp_project_xxx` so the CLI and SDK can read your project key locally |
+    | `.failpath/flows.json` | Pulls your project's current flow graph from the dashboard |
+    | `.failpath/AGENTS.md` | Provides step-key guidance for instrumenting your code correctly |
+    | `.gitignore` | Updated to exclude `.env` from version control |
+  </Step>
+  <Step title="Install the SDK">
+    Add `@failpath/sdk` to your backend project using your preferred package manager:
+
+    <CodeGroup>
+      ```bash npm
+      npm install @failpath/sdk
+      ```
+
+      ```bash yarn
+      yarn add @failpath/sdk
+      ```
+
+      ```bash pnpm
+      pnpm add @failpath/sdk
+      ```
+    </CodeGroup>
+  </Step>
+  <Step title="Instrument a function">
+    Import `createFailpathClient` and wrap your backend logic with `run()` and `step()`. Use the `flow.slug` from `.failpath/flows.json` as the flow key passed to `run()`, and each node's `sdkStepKey` as the key passed to `step()`.
+
+    The example below instruments a checkout handler with two steps:
+
+    ```typescript
+    import { createFailpathClient } from "@failpath/sdk";
+
+    const failpath = createFailpathClient({
+      projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    });
+
+    export async function handleCheckout(requestId: string) {
+      const run = failpath.run("checkout", { runId: requestId });
+
+      const cart = await run.step("validate-cart", async () => {
+        return validateCart();
+      });
+
+      await run.step("charge-card", async () => {
+        return chargeCard(cart);
+      });
+    }
+    ```
+
+    Each call to `step()` sends a `running` event before the wrapped function executes, then a `success` or `error` event when it completes. If the function throws, the SDK records the error and rethrows the original exception — your existing error handling is not affected.
+
+    <Tip>
+      Use the same `runId` for every step in a single request, job, or webhook. Passing your request ID keeps all related steps grouped together in the dashboard.
+    </Tip>
+  </Step>
+  <Step title="Publish your flow">
+    Push your local flow graph to the Failpath dashboard:
+
+    ```bash
+    npx failpath publish
+    ```
+
+    Before sending anything, `publish` validates `.failpath/flows.json` and reports any structural errors. Once validation passes, your flow definition is live on the dashboard and ready to receive events from your instrumented functions.
+  </Step>
+</Steps>
+
+<Note>
+  The `.env` file created by `init` is enough for local development, but you also need to set `FAILPATH_PROJECT_KEY` in your deployment environment. Platforms such as Vercel, Railway, and Convex each have their own environment variable configuration — add `FAILPATH_PROJECT_KEY` there so your deployed backend can send events to Failpath.
+</Note>

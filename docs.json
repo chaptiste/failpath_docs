@@ -1,0 +1,79 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Failpath",
+  "theme": "luma",
+  "logo": {
+    "light": "https://media.brand.dev/22a2a9f0-c94f-4bb0-b1d1-a8399e8d4538.svg",
+    "dark": "https://media.brand.dev/22a2a9f0-c94f-4bb0-b1d1-a8399e8d4538.svg"
+  },
+  "favicon": "https://media.brand.dev/ee9105b0-8d0c-41e8-bbf7-cf4889b3b518.png",
+  "colors": {
+    "primary": "#241c24",
+    "light": "#f4f4f4",
+    "dark": "#cb0404"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Poppins"
+    },
+    "body": {
+      "family": "Times New Roman"
+    }
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/failpath"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/flows",
+              "concepts/runs-and-steps",
+              "concepts/events"
+            ]
+          },
+          {
+            "group": "CLI",
+            "pages": [
+              "cli/overview",
+              "cli/commands",
+              "cli/configuration"
+            ]
+          },
+          {
+            "group": "SDK",
+            "pages": [
+              "sdk/overview",
+              "sdk/client",
+              "sdk/runs-and-steps",
+              "sdk/options"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/instrument-a-flow",
+              "guides/metadata",
+              "guides/error-handling",
+              "guides/environments"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

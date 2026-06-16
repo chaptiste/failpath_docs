@@ -1,0 +1,79 @@
+---
+title: "Failpath: Real-Time Monitoring for Backend Workflows"
+sidebarTitle: "Home"
+description: "Failpath tracks every step of your backend workflows — from cart validation to payment — so you always know what succeeded, failed, or was skipped."
+---
+
+Failpath gives you real-time visibility into every step of your backend workflows. Connect your repository with the Failpath CLI, instrument your functions with the TypeScript SDK, and watch each run move through its steps on the dashboard — with a clear record of what passed, what failed, and what was skipped.
+
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/introduction">
+    Learn what Failpath is, how the CLI and SDK fit together, and the key concepts you need to get started.
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Initialize Failpath in your repo, instrument a backend function, and publish your first flow in minutes.
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Explore the `init`, `publish`, and `sync` commands that manage your flow graphs.
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/sdk/overview">
+    Browse the full `@failpath/sdk` API for `createFailpathClient`, `run()`, `step()`, and more.
+  </Card>
+</CardGroup>
+
+## Get started
+
+Follow these four steps to go from a blank repo to a live, monitored flow on the Failpath dashboard.
+
+<Steps>
+  <Step title="Create a project in the Failpath dashboard">
+    Sign in to [app.failpath.dev](https://app.failpath.dev) and create a new project. Once it's created, copy your project key — it looks like `fp_project_xxx` and is the only credential you need to connect your repository.
+  </Step>
+  <Step title="Initialize your repository">
+    Run the following command at the root of your repo, replacing `fp_project_xxx` with your actual project key:
+
+    ```bash
+    npx failpath init --project-key fp_project_xxx
+    ```
+
+    This creates a `.env` file with `FAILPATH_PROJECT_KEY`, a `.failpath/flows.json` file containing your dashboard's current flow graph, a `.failpath/AGENTS.md` file with step-key guidance, and updates `.gitignore` to keep secrets out of version control.
+  </Step>
+  <Step title="Install @failpath/sdk and instrument your code">
+    Install the SDK in your backend project:
+
+    ```bash
+    npm install @failpath/sdk
+    ```
+
+    Then wrap your backend functions with `createFailpathClient`, `run()`, and `step()` so Failpath can track each step as it executes:
+
+    ```typescript
+    import { createFailpathClient } from "@failpath/sdk";
+
+    const failpath = createFailpathClient({
+      projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    });
+
+    export async function handleCheckout(requestId: string) {
+      const run = failpath.run("checkout", { runId: requestId });
+
+      const cart = await run.step("validate-cart", async () => {
+        return validateCart();
+      });
+
+      await run.step("charge-card", async () => {
+        return chargeCard(cart);
+      });
+    }
+    ```
+  </Step>
+  <Step title="Publish your flow to the dashboard">
+    Push your local flow graph to Failpath so the dashboard reflects your code:
+
+    ```bash
+    npx failpath publish
+    ```
+
+    Failpath validates `.failpath/flows.json` before pushing, so any structural issues are caught before they reach the dashboard.
+  </Step>
+</Steps>

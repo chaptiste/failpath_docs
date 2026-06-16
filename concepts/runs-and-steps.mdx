@@ -1,0 +1,94 @@
+---
+title: "Runs and Steps: Instrumenting Flow Executions in Failpath"
+sidebarTitle: "Runs & Steps"
+description: "A run is one execution of a flow. Steps are the individual units of work within that run. Learn how they relate and how to instrument them correctly."
+---
+
+Every time your backend processes a request, handles a webhook, or kicks off a background job, Failpath records it as a **run** — a single execution of a named flow. Within that run, each significant unit of work is a **step**. Together, runs and steps give you a precise, event-level record of what happened and where things went wrong.
+
+## Runs
+
+A run represents one end-to-end execution of a flow. You create a run by calling `failpath.run()` with the flow's slug and a `runId` that uniquely identifies this execution.
+
+```typescript
+const run = failpath.run("checkout", { runId: requestId });
+```
+
+The first argument — `"checkout"` — must match the `flow.slug` from your `.failpath/flows.json`. The `runId` ties all of the step events for this execution together on the dashboard. Use the natural identifier already available in your application: a request ID, a job ID, or a webhook delivery ID all work well.
+
+A `run` object is lightweight — creating it does not send any events. Events are only sent when you call `run.step()` or `run.skip()`.
+
+## Steps
+
+A step is a named unit of work within a run. You instrument a step by wrapping your business logic in `run.step()`, passing the step's `sdkStepKey` from `flows.json` as the first argument.
+
+```typescript
+await run.step("validate-cart", async () => {
+  return validateCart();
+});
+```
+
+When `run.step()` executes:
+
+<Steps>
+  <Step title="running event sent">
+    Before your function is called, Failpath sends a `running` event for this
+    step to the dashboard.
+  </Step>
+  <Step title="Your function runs">
+    The wrapped function executes normally. Its return value is passed through
+    so you can use it in subsequent steps.
+  </Step>
+  <Step title="success or error event sent">
+    If the function resolves, Failpath sends a `success` event. If it throws,
+    Failpath sends an `error` event and rethrows the original error so your
+    application continues to behave as expected.
+  </Step>
+</Steps>
+
+## Skipping steps
+
+Not every step in a flow runs on every execution. When a step is intentionally not executed in a particular run, call `run.skip()` so the dashboard can show it as skipped rather than missing.
+
+```typescript
+await run.skip("send-receipt-email");
+```
+
+This sends a skip signal for that step without calling any function. Use it for conditional branches where a step legitimately does not apply to this run.
+
+## Recording steps manually
+
+When you cannot wrap a function directly — for example, a step that runs in a separate service, a third-party callback, or an out-of-band process — use `failpath.recordStep()` to send an event manually instead of using `run.step()`.
+
+```typescript
+await failpath.recordStep({
+  flowKey: "checkout",
+  runId: "req_123",
+  stepKey: "send-receipt-email",
+  status: "success",
+});
+```
+
+Pass the flow's `flow.slug` as `flowKey`, the same `runId` you use for the rest of the run, the step's `sdkStepKey` as `stepKey`, and one of `"running"`, `"success"`, or `"error"` as `status`. This lets you fill in parts of a flow that the SDK cannot instrument automatically so the dashboard graph shows the full picture.
+
+## Best practices
+
+<CardGroup cols={2}>
+  <Card title="Wrap business steps" icon="layer-group">
+    Instrument the meaningful stages of your process — charge a card, send an
+    email, update an order — not low-level helpers or individual database calls.
+    Steps should map to the nodes visible on your flow graph.
+  </Card>
+  <Card title="Let errors bubble" icon="arrow-up-right-from-square">
+    You do not need to catch errors inside a `step()` callback. The SDK records
+    the error event and rethrows the original error automatically, so your
+    existing error handling stays intact.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Reuse one `runId` for every step in the same request, job, or webhook. If you
+  create multiple run objects with different `runId` values for the same
+  execution, Failpath will record them as separate runs and the steps will not
+  appear together on the dashboard.
+</Tip>

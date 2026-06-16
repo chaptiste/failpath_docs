@@ -1,0 +1,61 @@
+---
+title: "Configuring Failpath Across Deployment Environments"
+sidebarTitle: "Environments"
+description: "Set up Failpath correctly for local development, production deployments, and test environments, including platform-specific environment variable guides."
+---
+
+Failpath relies on a single environment variable — `FAILPATH_PROJECT_KEY` — to authenticate your SDK and CLI. Where and how you set that variable depends on which environment your code is running in. This page covers local development, deployed backends, and test environments.
+
+## Development
+
+When you run `npx failpath init`, the CLI writes your project key to a `.env` file in your repository root and adds `.env` to your `.gitignore` automatically. In local development, this file is all you need — both the CLI commands (`publish`, `sync`) and the SDK will read from it.
+
+```bash
+# .env (created by `npx failpath init` — do not commit this file)
+FAILPATH_PROJECT_KEY=fp_project_xxx
+```
+
+<Note>
+  The `init` command updates your `.gitignore` to exclude `.env` automatically. If you use a different env file convention (for example `.env.local`), make sure your project key file is listed in `.gitignore` before committing.
+</Note>
+
+## Production and deployed backends
+
+A repository `.env` file is not available in most deployed environments. You must set `FAILPATH_PROJECT_KEY` directly in your runtime environment using your platform's secret or environment variable management.
+
+| Platform | Where to set the variable |
+|---|---|
+| **Node.js (standard)** | Server environment or a secrets manager (e.g. AWS Secrets Manager, Doppler) injected at startup |
+| **Vercel** | Project Settings → Environment Variables |
+| **Railway** | Service Settings → Variables |
+| **Render** | Service Dashboard → Environment |
+| **Fly.io** | `fly secrets set FAILPATH_PROJECT_KEY=fp_project_xxx` |
+| **Convex** | Deployment dashboard → Environment Variables (the repository `.env` is not read by Convex deployments) |
+| **Docker** | Pass via `--env` flag or an `env_file` in your Compose configuration |
+
+<Warning>
+  Never commit `FAILPATH_PROJECT_KEY` to source control. Treat it as a secret with the same care as a database password or API key. If you accidentally expose it, rotate your project key from the Failpath dashboard immediately.
+</Warning>
+
+## Disabling in tests
+
+Set `enabled: false` to prevent the SDK from sending any telemetry during your test suite. When disabled, `step()` still executes the wrapped function and returns its result normally — only the network calls are skipped.
+
+```typescript
+const failpath = createFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY ?? "test",
+  enabled: process.env.NODE_ENV !== "test",
+});
+```
+
+The `?? "test"` fallback ensures the SDK does not throw when `FAILPATH_PROJECT_KEY` is not set in your test environment.
+
+## Local API development
+
+If you are developing against a local instance of the Failpath API itself, you can override the default endpoint (`https://api.failpath.dev`) by setting `FAILPATH_DEV_ENDPOINT` in your shell, or by passing `--endpoint` to any CLI command:
+
+```bash
+npx failpath publish --endpoint http://localhost:3001
+```
+
+This option is intended for Failpath contributors and local API development only. Do not set `FAILPATH_DEV_ENDPOINT` in production deployments.
