@@ -12,7 +12,7 @@
 
 # Failpath CLI
 
-Initialize a repository for Failpath, pull dashboard graphs into `.failpath/flows.json`, and publish local edits back to Failpath.
+Initialize a repository for Failpath, pull dashboard graphs into `.failpath/flows.json`, generate typed SDK bindings in `.failpath/sdk.ts`, and publish local edits back to Failpath.
 
 ```shell
 npx failpath init --project-key fp_project_xxx
@@ -22,9 +22,26 @@ npx failpath sync
 
 ## Commands
 
-- `init`: creates `.env`, updates `.gitignore`, creates `.failpath/AGENTS.md`, and pulls the configured project's current dashboard graph into `.failpath/flows.json`.
-- `sync`: pulls dashboard graph edits into `.failpath/flows.json`.
-- `publish`: validates `.failpath/flows.json` and pushes local edits to Failpath.
+- `init`: creates `.env`, updates `.gitignore`, creates `.failpath/AGENTS.md`, pulls the configured project's current dashboard graph into `.failpath/flows.json`, and generates `.failpath/sdk.ts`.
+- `sync`: pulls dashboard graph edits into `.failpath/flows.json` and regenerates `.failpath/sdk.ts`.
+- `publish`: validates `.failpath/flows.json`, regenerates `.failpath/sdk.ts`, and pushes local edits to Failpath.
+
+## Typed SDK bindings
+
+`init`, `sync`, and `publish` generate `.failpath/sdk.ts` from the current flow graph. Import it from application code to autocomplete flow slugs and step keys.
+
+```ts
+import { createTypedFailpathClient, failpathFlows } from "../.failpath/sdk";
+
+export const failpath = createTypedFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+});
+
+const run = failpath.run(failpathFlows.checkout.slug, { runId: "req_123" });
+await run.step(failpathFlows.checkout.steps.validateCart, async () => {
+  return validateCart();
+});
+```
 
 ## Environment
 

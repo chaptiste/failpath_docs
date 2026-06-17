@@ -22,6 +22,10 @@ yarn add @failpath/sdk
 pnpm add @failpath/sdk
 ```
 
+```bash bun
+bun add @failpath/sdk
+```
+
 </CodeGroup>
 
 ## Quick start
@@ -29,32 +33,32 @@ pnpm add @failpath/sdk
 The following example covers the full lifecycle: creating a client, starting a run, and instrumenting two steps inside a checkout handler.
 
 ```typescript
-import { createFailpathClient } from "@failpath/sdk";
+import { createTypedFailpathClient, failpathFlows } from "../.failpath/sdk";
 
 // Create a single client instance for your project
-const failpath = createFailpathClient({
+const failpath = createTypedFailpathClient({
   projectKey: process.env.FAILPATH_PROJECT_KEY!,
   defaultMetadata: { env: "production" },
 });
 
 export async function handleCheckout(requestId: string) {
   // Start a run — reuse one runId for every step in the same request
-  const run = failpath.run("checkout", {
+  const run = failpath.run(failpathFlows.checkout.slug, {
     runId: requestId,
     metadata: { route: "/checkout" },
   });
 
   // Wrap each business operation with step()
-  const cart = await run.step("validate-cart", async () => {
+  const cart = await run.step(failpathFlows.checkout.steps.validateCart, async () => {
     return validateCart();
   });
 
-  await run.step("charge-card", async () => {
+  await run.step(failpathFlows.checkout.steps.chargeCard, async () => {
     return chargeCard(cart);
   });
 
   // Explicitly skip an optional step
-  await run.skip("send-receipt-email");
+  await run.skip(failpathFlows.checkout.steps.sendReceiptEmail);
 
   // Drain queued telemetry before the request or process ends
   await failpath.flush();
@@ -69,7 +73,7 @@ If the wrapped function throws, the SDK records the error and rethrows the origi
 
 <CardGroup cols={2}>
   <Card title="TypeScript-first" icon="code">
-    Full type declarations are included in the package. No separate `@types` install needed.
+    Full type declarations are included in the package, and `.failpath/sdk.ts` gives you typed flow slugs and step keys.
   </Card>
   <Card title="Background telemetry" icon="bolt">
     Telemetry sends run in the background by default. Use `flush()` or a runtime `waitUntil` hook when you need deterministic delivery.
@@ -95,7 +99,10 @@ If the wrapped function throws, the SDK records the error and rethrows the origi
 
 <CardGroup cols={3}>
   <Card title="Client" icon="wrench" href="/sdk/client">
-    Configure `createFailpathClient()` with your project key, metadata defaults, and error handling options.
+    Configure the typed or base client with your project key, metadata defaults, and error handling options.
+  </Card>
+  <Card title="Typed Keys" icon="braces" href="/sdk/typed-keys">
+    Generate `.failpath/sdk.ts` and use autocomplete for flow slugs and step keys.
   </Card>
   <Card title="Runs & Steps" icon="list-check" href="/sdk/runs-and-steps">
     Learn how to start a run, instrument steps, skip branches, and record events manually.

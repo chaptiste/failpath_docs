@@ -8,7 +8,7 @@ A flow is a named sequence of steps that represents one backend process — such
 
 ## The `flows.json` file
 
-When you run `npx failpath init`, the CLI creates a `.failpath/` directory in your repository and writes a `flows.json` file that mirrors the current graph from your Failpath dashboard project. This file is the local source of truth for your flow definitions — it describes every flow and every step node, along with the keys your SDK code uses to identify them.
+When you run `npx failpath init`, the CLI creates a `.failpath/` directory in your repository, writes a `flows.json` file that mirrors the current graph from your Failpath dashboard project, and generates `.failpath/sdk.ts` from that graph. The JSON file is the local source of truth for your flow definitions — it describes every flow and every step node, along with the keys your SDK code uses to identify them.
 
 ```bash
 npx failpath init --project-key fp_project_xxx
@@ -17,32 +17,35 @@ npx failpath init --project-key fp_project_xxx
 After `init`, your repository contains:
 
 - `.failpath/flows.json` — the flow graph pulled from the dashboard
+- `.failpath/sdk.ts` — generated typed bindings for flow slugs and step keys
 - `.failpath/AGENTS.md` — context for AI coding assistants
 - An updated `.gitignore` and a `.env` file containing your `FAILPATH_PROJECT_KEY`
 
-You should commit `.failpath/flows.json` alongside your application code so that your flow definitions are version-controlled and visible to your team.
+You should commit `.failpath/flows.json` alongside your application code so that your flow definitions are version-controlled and visible to your team. If your application imports `.failpath/sdk.ts`, commit that generated file too or regenerate it before typechecking and building.
 
 ## The `flow.slug` field
 
 Each flow in `flows.json` has a `slug` property. This slug is the key you pass to `failpath.run()` in your SDK code to associate a runtime execution with its flow definition on the dashboard.
 
 ```typescript
-const run = failpath.run("checkout", { runId: requestId });
+import { failpathFlows } from "../.failpath/sdk";
+
+const run = failpath.run(failpathFlows.checkout.slug, { runId: requestId });
 ```
 
-If your flow's `slug` is `"checkout"`, every call to `failpath.run("checkout", ...)` is recorded as a run of that flow. Make sure the slug you use in code matches exactly what is in `flows.json`.
+If your flow's `slug` is `"checkout"`, every call to `failpath.run("checkout", ...)` is recorded as a run of that flow. Prefer `failpathFlows` from `.failpath/sdk.ts` so TypeScript autocompletes the slug and catches typos. Raw string literals still work when they match exactly what is in `flows.json`.
 
 ## Steps within a flow
 
 Each flow is made up of step nodes. In `flows.json`, every node has an `sdkStepKey` field — this is the string you pass as the first argument to `run.step()` in your application code. Keeping these keys in sync between `flows.json` and your code is how Failpath connects live run data to the right node on the dashboard graph.
 
 ```typescript
-await run.step("validate-cart", async () => {
+await run.step(failpathFlows.checkout.steps.validateCart, async () => {
   return validateCart();
 });
 ```
 
-The dashboard graph is the canonical definition of which steps exist and what their keys are. Use the `sdkStepKey` values directly — do not rename them in code.
+The dashboard graph is the canonical definition of which steps exist and what their keys are. Use the generated constants or the `sdkStepKey` values directly — do not rename them in code.
 
 ## Publishing changes to the dashboard
 
@@ -52,7 +55,7 @@ If you edit a flow graph locally or need to push a new configuration, run:
 npx failpath publish
 ```
 
-`publish` validates your `flows.json` and pushes the local graph to the Failpath dashboard. Use this when you have made changes in your repository that should be reflected on the dashboard.
+`publish` validates your `flows.json`, regenerates `.failpath/sdk.ts`, and pushes the local graph to the Failpath dashboard. Use this when you have made changes in your repository that should be reflected on the dashboard.
 
 ## Pulling dashboard changes
 
@@ -62,7 +65,7 @@ If you make edits on the Failpath dashboard — adding steps, renaming nodes, or
 npx failpath sync
 ```
 
-`sync` overwrites your local `flows.json` with the latest graph from the dashboard. Run it whenever you update a flow through the dashboard UI so that your local file and your SDK step keys stay in sync.
+`sync` overwrites your local `flows.json` with the latest graph from the dashboard and regenerates `.failpath/sdk.ts`. Run it whenever you update a flow through the dashboard UI so that your local file, generated types, and SDK step keys stay in sync.
 
 <Note>
   Do not hand-edit `flows.json` beyond what the dashboard produces. The file is

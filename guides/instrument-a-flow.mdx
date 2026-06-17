@@ -14,15 +14,16 @@ This guide walks you through instrumenting a backend function with Failpath from
     npx failpath init --project-key fp_project_xxx
     ```
 
-    The `init` command does four things:
+    The `init` command does five things:
 
     - Writes `FAILPATH_PROJECT_KEY` to a `.env` file
     - Adds `.env` to your `.gitignore`
     - Creates `.failpath/AGENTS.md`
     - Pulls your project's current dashboard graph into `.failpath/flows.json`
+    - Generates `.failpath/sdk.ts` for typed flow and step keys
   </Step>
 
-  <Step title="Inspect .failpath/flows.json">
+  <Step title="Inspect the generated flow keys">
     Open `.failpath/flows.json`. You will see one or more flow objects. Two fields are important when writing SDK code:
 
     - **`flow.slug`** — pass this string as the first argument to `run()`. It identifies which flow a run belongs to.
@@ -43,15 +44,25 @@ This guide walks you through instrumenting a backend function with Failpath from
     }
     ```
 
-    Keep this file open as a reference while you instrument your function.
+    The CLI also generates `.failpath/sdk.ts` from this graph. Import `failpathFlows` from that file when you instrument code so the slugs and step keys autocomplete.
   </Step>
 
   <Step title="Install @failpath/sdk">
     Add the SDK to your project:
 
-    ```bash
+    <CodeGroup>
+    ```bash npm
     npm install @failpath/sdk
     ```
+
+    ```bash pnpm
+    pnpm add @failpath/sdk
+    ```
+
+    ```bash bun
+    bun add @failpath/sdk
+    ```
+    </CodeGroup>
   </Step>
 
   <Step title="Create the client">
@@ -59,9 +70,9 @@ This guide walks you through instrumenting a backend function with Failpath from
 
     ```typescript
     // lib/failpath.ts
-    import { createFailpathClient } from "@failpath/sdk";
+    import { createTypedFailpathClient } from "../.failpath/sdk";
 
-    export const failpath = createFailpathClient({
+    export const failpath = createTypedFailpathClient({
       projectKey: process.env.FAILPATH_PROJECT_KEY!,
       defaultMetadata: { environment: "production" },
     });
@@ -71,26 +82,27 @@ This guide walks you through instrumenting a backend function with Failpath from
   </Step>
 
   <Step title="Wrap your function steps">
-    Import your client and use `run()` to start a run, then wrap each business step with `step()`. Pass the `flow.slug` to `run()` and the matching `sdkStepKey` to each `step()` call. Reuse the same `runId` for every step that belongs to the same request.
+    Import your client and `failpathFlows`, then use `run()` to start a run and wrap each business step with `step()`. Reuse the same `runId` for every step that belongs to the same request.
 
     ```typescript
+    import { failpathFlows } from "../.failpath/sdk";
     import { failpath } from "./lib/failpath";
 
     export async function handleCheckout(requestId: string) {
-      const run = failpath.run("checkout", {
+      const run = failpath.run(failpathFlows.checkout.slug, {
         runId: requestId,
         metadata: { route: "/checkout" },
       });
 
-      const cart = await run.step("validate-cart", async () => {
+      const cart = await run.step(failpathFlows.checkout.steps.validateCart, async () => {
         return validateCart();
       });
 
-      const charge = await run.step("charge-card", async () => {
+      const charge = await run.step(failpathFlows.checkout.steps.chargeCard, async () => {
         return chargeCard(cart);
       });
 
-      await run.step("send-receipt-email", async () => {
+      await run.step(failpathFlows.checkout.steps.sendReceiptEmail, async () => {
         return sendReceiptEmail(charge.receiptAddress);
       });
 

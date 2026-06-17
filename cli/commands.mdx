@@ -8,7 +8,7 @@ The Failpath CLI exposes three commands that cover the full lifecycle of managin
 
 ## init
 
-Use `init` to connect your repository to a Failpath project for the first time. The command writes your project key to a local `.env` file, adds that file to `.gitignore` so the key isn't committed, creates the `.failpath/` directory with an `AGENTS.md` guidance file, and pulls your project's current dashboard graph into `.failpath/flows.json`.
+Use `init` to connect your repository to a Failpath project for the first time. The command writes your project key to a local `.env` file, adds that file to `.gitignore` so the key isn't committed, creates the `.failpath/` directory with an `AGENTS.md` guidance file, pulls your project's current dashboard graph into `.failpath/flows.json`, and generates `.failpath/sdk.ts` for typed SDK autocomplete.
 
 ```bash
 npx failpath init --project-key fp_project_xxx
@@ -32,6 +32,7 @@ npx failpath init --project-key fp_project_xxx
 2. Adds `.env` to `.gitignore` (creates the file if it doesn't exist)
 3. Creates `.failpath/AGENTS.md` with SDK integration guidance for AI coding agents
 4. Pulls the project's current dashboard graph into `.failpath/flows.json`
+5. Generates `.failpath/sdk.ts` from the flow graph
 
 <Note>
   You only need to run `init` once per repository. After that, use `sync` to pull dashboard updates and `publish` to push local changes.
@@ -41,7 +42,7 @@ npx failpath init --project-key fp_project_xxx
 
 ## publish
 
-Use `publish` to validate your local `.failpath/flows.json` and push any edits you've made back to the Failpath dashboard. Run this after editing your flow graph locally to keep the dashboard in sync with your repository.
+Use `publish` to validate your local `.failpath/flows.json`, regenerate `.failpath/sdk.ts`, and push any edits you've made back to the Failpath dashboard. Run this after editing your flow graph locally to keep the dashboard in sync with your repository.
 
 ```bash
 npx failpath publish
@@ -59,7 +60,8 @@ npx failpath publish
 
 1. Reads `FAILPATH_PROJECT_KEY` from your environment or `.env` file
 2. Validates the structure of `.failpath/flows.json`
-3. Pushes the validated graph to the Failpath dashboard
+3. Regenerates `.failpath/sdk.ts`
+4. Pushes the validated graph to the Failpath dashboard
 
 <Warning>
   `publish` will fail if `FAILPATH_PROJECT_KEY` is not set in your environment or `.env` file. Run `npx failpath init --project-key <key>` first to write the key.
@@ -69,7 +71,7 @@ npx failpath publish
 
 ## sync
 
-Use `sync` to pull the latest version of your project's flow graph from the Failpath dashboard into `.failpath/flows.json`. Run this whenever you or a teammate has made changes in the dashboard that you want reflected in the repository.
+Use `sync` to pull the latest version of your project's flow graph from the Failpath dashboard into `.failpath/flows.json` and regenerate `.failpath/sdk.ts`. Run this whenever you or a teammate has made changes in the dashboard that you want reflected in the repository.
 
 ```bash
 npx failpath sync
@@ -88,7 +90,8 @@ npx failpath sync
 1. Reads `FAILPATH_PROJECT_KEY` from your environment or `.env` file
 2. Fetches the current graph from the Failpath dashboard
 3. Overwrites `.failpath/flows.json` with the latest graph
+4. Regenerates `.failpath/sdk.ts`
 
 <Tip>
-  Commit `.failpath/flows.json` to version control. Running `sync` before starting a new feature branch ensures your local flow definitions match what's live on the dashboard.
+  Commit `.failpath/flows.json` to version control. If your application imports `.failpath/sdk.ts`, commit that generated file too or regenerate it in CI before typechecking and building.
 </Tip>

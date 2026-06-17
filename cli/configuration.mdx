@@ -38,17 +38,20 @@ Setting this variable in your shell is equivalent to passing `--endpoint <url>` 
 
 ## The `.failpath/` Directory
 
-Running `init` creates a `.failpath/` directory at your project root with two files:
+Running `init` creates a `.failpath/` directory at your project root with three files:
 
 ```text
 .failpath/
 ├── flows.json   # The project's flow graph definition
+├── sdk.ts       # Generated typed flow and step bindings
 └── AGENTS.md    # Guidance for AI coding agents integrating Failpath
 ```
 
 **`flows.json`** is the serialised flow graph for your project. `sync` overwrites it with the latest dashboard state, and `publish` reads it to push local edits back. Commit this file so your entire team works from the same flow definition.
 
-**`AGENTS.md`** is written for AI coding agents such as Copilot or Cursor. It explains how to read `flows.json` and use the `flow.slug` and `sdkStepKey` values to instrument your application code with the Failpath SDK. You don't need to edit it manually — treat it as generated documentation for your AI tooling.
+**`sdk.ts`** is generated from `flows.json` by `init`, `sync`, and `publish`. It exports `failpathFlows`, flow and step key types, and `createTypedFailpathClient()` so TypeScript can autocomplete valid slugs and step keys.
+
+**`AGENTS.md`** is written for AI coding agents such as Copilot or Cursor. It explains how to read `flows.json` and `sdk.ts` to instrument your application code with the Failpath SDK. You don't need to edit it manually — treat it as generated documentation for your AI tooling.
 
 ## Deployment Environments
 

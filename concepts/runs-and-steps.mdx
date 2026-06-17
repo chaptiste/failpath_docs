@@ -11,19 +11,21 @@ Every time your backend processes a request, handles a webhook, or kicks off a b
 A run represents one end-to-end execution of a flow. You create a run by calling `failpath.run()` with the flow's slug and a `runId` that uniquely identifies this execution.
 
 ```typescript
-const run = failpath.run("checkout", { runId: requestId });
+import { failpathFlows } from "../.failpath/sdk";
+
+const run = failpath.run(failpathFlows.checkout.slug, { runId: requestId });
 ```
 
-The first argument — `"checkout"` — must match the `flow.slug` from your `.failpath/flows.json`. The `runId` ties all of the step events for this execution together on the dashboard. Use the natural identifier already available in your application: a request ID, a job ID, or a webhook delivery ID all work well.
+The first argument must match the `flow.slug` from your `.failpath/flows.json`. Prefer `failpathFlows` from `.failpath/sdk.ts` so TypeScript autocompletes valid flow slugs. The `runId` ties all of the step events for this execution together on the dashboard. Use the natural identifier already available in your application: a request ID, a job ID, or a webhook delivery ID all work well.
 
 A `run` object is lightweight — creating it does not queue any events. Events are queued when you call `run.step()` or `run.skip()`.
 
 ## Steps
 
-A step is a named unit of work within a run. You instrument a step by wrapping your business logic in `run.step()`, passing the step's `sdkStepKey` from `flows.json` as the first argument.
+A step is a named unit of work within a run. You instrument a step by wrapping your business logic in `run.step()`, passing the step's generated key from `failpathFlows` or the raw `sdkStepKey` from `flows.json` as the first argument.
 
 ```typescript
-await run.step("validate-cart", async () => {
+await run.step(failpathFlows.checkout.steps.validateCart, async () => {
   return validateCart();
 });
 ```
@@ -53,7 +55,7 @@ By default, queued telemetry drains in the background. Call `failpath.flush()` b
 Not every step in a flow runs on every execution. When a step is intentionally not executed in a particular run, call `run.skip()` so the dashboard can show it as skipped rather than missing.
 
 ```typescript
-await run.skip("send-receipt-email");
+await run.skip(failpathFlows.checkout.steps.sendReceiptEmail);
 ```
 
 This queues a `skipped` event for that step without calling any function. Use it for conditional branches where a step legitimately does not apply to this run.
@@ -64,14 +66,14 @@ When you cannot wrap a function directly — for example, a step that runs in a 
 
 ```typescript
 await failpath.recordStep({
-  flowKey: "checkout",
+  flowKey: failpathFlows.checkout.slug,
   runId: "req_123",
-  stepKey: "send-receipt-email",
+  stepKey: failpathFlows.checkout.steps.sendReceiptEmail,
   status: "success",
 });
 ```
 
-Pass the flow's `flow.slug` as `flowKey`, the same `runId` you use for the rest of the run, the step's `sdkStepKey` as `stepKey`, and one of `"running"`, `"success"`, `"error"`, or `"skipped"` as `status`. This lets you fill in parts of a flow that the SDK cannot instrument automatically so the dashboard graph shows the full picture.
+Pass the flow's generated slug as `flowKey`, the same `runId` you use for the rest of the run, the step's generated key as `stepKey`, and one of `"running"`, `"success"`, `"error"`, or `"skipped"` as `status`. This lets you fill in parts of a flow that the SDK cannot instrument automatically so the dashboard graph shows the full picture.
 
 ## Best practices
 

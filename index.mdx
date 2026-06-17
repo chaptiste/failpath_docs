@@ -17,7 +17,7 @@ Failpath gives you real-time visibility into every step of your backend workflow
     Explore the `init`, `publish`, and `sync` commands that manage your flow graphs.
   </Card>
   <Card title="SDK Reference" icon="code" href="/sdk/overview">
-    Browse the full `@failpath/sdk` API for `createFailpathClient`, `run()`, `step()`, and more.
+    Browse the full `@failpath/sdk` API, including typed flow keys, `run()`, `step()`, and more.
   </Card>
 </CardGroup>
 
@@ -36,7 +36,7 @@ Follow these four steps to go from a blank repo to a live, monitored flow on the
     npx failpath init --project-key fp_project_xxx
     ```
 
-    This creates a `.env` file with `FAILPATH_PROJECT_KEY`, a `.failpath/flows.json` file containing your dashboard's current flow graph, a `.failpath/AGENTS.md` file with step-key guidance, and updates `.gitignore` to keep secrets out of version control.
+    This creates a `.env` file with `FAILPATH_PROJECT_KEY`, a `.failpath/flows.json` file containing your dashboard's current flow graph, a `.failpath/sdk.ts` helper for typed flow keys, a `.failpath/AGENTS.md` file with step-key guidance, and updates `.gitignore` to keep secrets out of version control.
   </Step>
   <Step title="Install @failpath/sdk and instrument your code">
     Install the SDK in your backend project:
@@ -45,23 +45,23 @@ Follow these four steps to go from a blank repo to a live, monitored flow on the
     npm install @failpath/sdk
     ```
 
-    Then wrap your backend functions with `createFailpathClient`, `run()`, and `step()` so Failpath can track each step as it executes:
+    Then wrap your backend functions with the generated typed helper, `run()`, and `step()` so Failpath can track each step as it executes:
 
     ```typescript
-    import { createFailpathClient } from "@failpath/sdk";
+    import { createTypedFailpathClient, failpathFlows } from "../.failpath/sdk";
 
-    const failpath = createFailpathClient({
+    const failpath = createTypedFailpathClient({
       projectKey: process.env.FAILPATH_PROJECT_KEY!,
     });
 
     export async function handleCheckout(requestId: string) {
-      const run = failpath.run("checkout", { runId: requestId });
+      const run = failpath.run(failpathFlows.checkout.slug, { runId: requestId });
 
-      const cart = await run.step("validate-cart", async () => {
+      const cart = await run.step(failpathFlows.checkout.steps.validateCart, async () => {
         return validateCart();
       });
 
-      await run.step("charge-card", async () => {
+      await run.step(failpathFlows.checkout.steps.chargeCard, async () => {
         return chargeCard(cart);
       });
 

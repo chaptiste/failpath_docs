@@ -4,7 +4,7 @@ sidebarTitle: "Overview"
 description: "The Failpath CLI connects your local repository to the Failpath dashboard, letting you initialize projects, sync flow definitions, and publish changes."
 ---
 
-The Failpath CLI is your bridge between your codebase and the Failpath dashboard. Use it to initialize a project in your repository, pull the latest flow graph from the dashboard into `.failpath/flows.json`, and push local edits back. Because the CLI ships as the `failpath` npm package, you can run it instantly with `npx` or install it globally if you prefer.
+The Failpath CLI is your bridge between your codebase and the Failpath dashboard. Use it to initialize a project in your repository, pull the latest flow graph from the dashboard into `.failpath/flows.json`, generate typed SDK bindings in `.failpath/sdk.ts`, and push local edits back. Because the CLI ships as the `failpath` npm package, you can run it instantly with `npx` or install it globally if you prefer.
 
 ## Installation
 
@@ -24,30 +24,33 @@ After a global install, replace `npx failpath` with `failpath` in any command.
 
 ## What the CLI Does
 
-The CLI keeps `.failpath/flows.json` in sync between your repository and the Failpath dashboard. You define or refine flow graphs in the dashboard, pull them into your repo with `sync`, wire them up in your code using the SDK, and then push any local edits back with `publish`. This round-trip gives your team a single source of truth for flow definitions that lives both in version control and on the dashboard.
+The CLI keeps `.failpath/flows.json` and `.failpath/sdk.ts` in sync between your repository and the Failpath dashboard. You define or refine flow graphs in the dashboard, pull them into your repo with `sync`, wire them up in your code using the generated typed SDK helper, and then push any local edits back with `publish`. This round-trip gives your team a single source of truth for flow definitions that lives both in version control and on the dashboard.
 
 <CardGroup cols={3}>
   <Card title="init" icon="rocket" href="/cli/commands">
-    Set up a new project in your repository. Writes your project key to `.env`, creates the `.failpath/` directory, and pulls the current dashboard graph.
+    Set up a new project in your repository. Writes your project key to `.env`, creates the `.failpath/` directory, pulls the current dashboard graph, and generates typed bindings.
   </Card>
   <Card title="publish" icon="upload" href="/cli/commands">
-    Validate your local `.failpath/flows.json` and push edits to the Failpath dashboard.
+    Validate your local `.failpath/flows.json`, regenerate `.failpath/sdk.ts`, and push edits to the Failpath dashboard.
   </Card>
   <Card title="sync" icon="arrows-rotate" href="/cli/commands">
-    Pull the latest dashboard graph into `.failpath/flows.json` to stay up-to-date with changes made in the UI.
+    Pull the latest dashboard graph into `.failpath/flows.json` and regenerate `.failpath/sdk.ts`.
   </Card>
 </CardGroup>
 
 ## The `.failpath/` Directory
 
-Running `init` creates a `.failpath/` directory at the root of your repository with two files:
+Running `init` creates a `.failpath/` directory at the root of your repository with three files:
 
 ```text
 .failpath/
 ├── flows.json   # Your project's flow graph definition
+├── sdk.ts       # Generated typed flow and step bindings
 └── AGENTS.md    # Guidance for AI coding agents integrating Failpath
 ```
 
 **`flows.json`** is the local representation of your project's flow graph. The `sync` command overwrites it with the latest dashboard state, and `publish` reads it to push your edits back. Commit this file to version control so your team shares a consistent flow definition.
 
-**`AGENTS.md`** contains step-by-step guidance written specifically for AI coding agents (such as Copilot or Cursor). It tells agents how to use `flows.json` to instrument your code with the Failpath SDK — for example, which `flow.slug` values to pass to `run()` and which `sdkStepKey` values to pass to `step()`.
+**`sdk.ts`** is generated from `flows.json` by `init`, `sync`, and `publish`. Import `failpathFlows` and `createTypedFailpathClient` from this file to autocomplete flow slugs and step keys in TypeScript.
+
+**`AGENTS.md`** contains step-by-step guidance written specifically for AI coding agents (such as Copilot or Cursor). It tells agents how to use `flows.json` and `sdk.ts` to instrument your code with the Failpath SDK.

@@ -1,0 +1,73 @@
+---
+title: "Typed Flow Keys: Autocomplete Slugs and Steps"
+sidebarTitle: "Typed Keys"
+description: "Use the generated .failpath/sdk.ts helper to autocomplete Failpath flow slugs and step keys in TypeScript."
+---
+
+Failpath can generate TypeScript bindings from your local flow graph. After you run `init`, `sync`, or `publish`, the CLI writes `.failpath/sdk.ts` next to `.failpath/flows.json`.
+
+```bash
+npx failpath sync
+```
+
+That generated file exports:
+
+- `failpathFlows` — constants for every flow slug and step key
+- `failpathFlowMap` — a slug-keyed map of the generated graph
+- `createTypedFailpathClient()` — a typed wrapper around `createFailpathClient()`
+- `FailpathFlowSlug` and `FailpathStepKey` — utility types for your own helpers
+
+## Use the typed client
+
+Import the generated helper from your application code. Adjust the relative path so it points to your repository's `.failpath/sdk.ts` file.
+
+```typescript
+import { createTypedFailpathClient, failpathFlows } from "../.failpath/sdk";
+
+export const failpath = createTypedFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+});
+
+export async function handleCheckout(requestId: string) {
+  const run = failpath.run(failpathFlows.checkout.slug, {
+    runId: requestId,
+  });
+
+  const cart = await run.step(failpathFlows.checkout.steps.validateCart, async () => {
+    return validateCart();
+  });
+
+  await run.step(failpathFlows.checkout.steps.chargeCard, async () => {
+    return chargeCard(cart);
+  });
+
+  await failpath.flush();
+}
+```
+
+The generated client also narrows string literals. If the `checkout` flow exists, TypeScript autocompletes valid step keys for that flow:
+
+```typescript
+const run = failpath.run("checkout", { runId: requestId });
+
+await run.step("validate-cart", async () => {
+  return validateCart();
+});
+```
+
+Passing a flow slug or step key that does not exist in `.failpath/flows.json` becomes a TypeScript error.
+
+## Keep bindings current
+
+Regenerate `.failpath/sdk.ts` whenever the graph changes:
+
+```bash
+npx failpath sync
+npx failpath publish
+```
+
+`sync` pulls dashboard edits into `.failpath/flows.json` and regenerates the typed helper. `publish` validates local graph edits, regenerates the helper, and pushes the graph back to the dashboard.
+
+<Tip>
+  If your application imports `.failpath/sdk.ts`, commit it with `.failpath/flows.json` or regenerate it in CI before typechecking and building. The generated file contains no secrets.
+</Tip>

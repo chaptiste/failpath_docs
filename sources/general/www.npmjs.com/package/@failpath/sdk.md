@@ -46,6 +46,26 @@ export async function handleCheckout(requestId: string) {
 
 If the wrapped operation throws, the SDK records the error and rethrows the original application error.
 
+## Typed flow keys
+
+After running `npx failpath init`, `npx failpath sync`, or `npx failpath publish`, the CLI generates `.failpath/sdk.ts` from the current flow graph. Import it to autocomplete flow slugs and step keys.
+
+```ts
+import { createTypedFailpathClient, failpathFlows } from "../.failpath/sdk";
+
+const failpath = createTypedFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+});
+
+const run = failpath.run(failpathFlows.checkout.slug, { runId: "req_123" });
+
+await run.step(failpathFlows.checkout.steps.validateCart, async () => {
+  return validateCart();
+});
+```
+
+The typed client also narrows string literals, so `failpath.run("checkout")` and `run.step("validate-cart", ...)` autocomplete when those keys exist in `.failpath/flows.json`.
+
 ## API
 
 ```ts
@@ -106,8 +126,9 @@ For deployed backends, set `FAILPATH_PROJECT_KEY` in the backend runtime environ
 
 ## Agent checklist
 
-- Use `flow.slug` from `.failpath/flows.json` as the `run()` flow key.
-- Use each node's `sdkStepKey` as the `step()` key.
+- Prefer `failpathFlows` from `.failpath/sdk.ts` for typed flow and step keys.
+- If not using the generated helper, use `flow.slug` from `.failpath/flows.json` as the `run()` flow key.
+- If not using the generated helper, use each node's `sdkStepKey` as the `step()` key.
 - Reuse one `runId` for every step in the same request, job, or webhook.
 - Wrap business steps, not tiny helpers or repository calls.
 - Let application errors bubble. `step()` already rethrows the original error.

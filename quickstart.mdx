@@ -23,6 +23,7 @@ This guide walks you through everything you need to go from zero to a live, moni
     |------|--------------|
     | `.env` | Writes `FAILPATH_PROJECT_KEY=fp_project_xxx` so the CLI and SDK can read your project key locally |
     | `.failpath/flows.json` | Pulls your project's current flow graph from the dashboard |
+    | `.failpath/sdk.ts` | Generates typed flow and step key bindings for autocomplete |
     | `.failpath/AGENTS.md` | Provides step-key guidance for instrumenting your code correctly |
     | `.gitignore` | Updated to exclude `.env` from version control |
   </Step>
@@ -41,28 +42,32 @@ This guide walks you through everything you need to go from zero to a live, moni
       ```bash pnpm
       pnpm add @failpath/sdk
       ```
+
+      ```bash bun
+      bun add @failpath/sdk
+      ```
     </CodeGroup>
   </Step>
   <Step title="Instrument a function">
-    Import `createFailpathClient` and wrap your backend logic with `run()` and `step()`. Use the `flow.slug` from `.failpath/flows.json` as the flow key passed to `run()`, and each node's `sdkStepKey` as the key passed to `step()`.
+    Import `createTypedFailpathClient` and `failpathFlows` from the generated `.failpath/sdk.ts` helper, then wrap your backend logic with `run()` and `step()`. Adjust the relative import path to match where your client file lives.
 
     The example below instruments a checkout handler with two steps:
 
     ```typescript
-    import { createFailpathClient } from "@failpath/sdk";
+    import { createTypedFailpathClient, failpathFlows } from "../.failpath/sdk";
 
-    const failpath = createFailpathClient({
+    const failpath = createTypedFailpathClient({
       projectKey: process.env.FAILPATH_PROJECT_KEY!,
     });
 
     export async function handleCheckout(requestId: string) {
-      const run = failpath.run("checkout", { runId: requestId });
+      const run = failpath.run(failpathFlows.checkout.slug, { runId: requestId });
 
-      const cart = await run.step("validate-cart", async () => {
+      const cart = await run.step(failpathFlows.checkout.steps.validateCart, async () => {
         return validateCart();
       });
 
-      await run.step("charge-card", async () => {
+      await run.step(failpathFlows.checkout.steps.chargeCard, async () => {
         return chargeCard(cart);
       });
 
@@ -75,7 +80,7 @@ This guide walks you through everything you need to go from zero to a live, moni
     If the function throws, the SDK records the error and rethrows the original exception — your existing error handling is not affected.
 
     <Tip>
-      Use the same `runId` for every step in a single request, job, or webhook. Passing your request ID keeps all related steps grouped together in the dashboard.
+      Use the same `runId` for every step in a single request, job, or webhook. The typed client also autocompletes valid string literals, so `failpath.run("checkout", ...)` and `run.step("validate-cart", ...)` work when those keys exist in `.failpath/flows.json`.
     </Tip>
   </Step>
   <Step title="Publish your flow">
@@ -85,7 +90,7 @@ This guide walks you through everything you need to go from zero to a live, moni
     npx failpath publish
     ```
 
-    Before sending anything, `publish` validates `.failpath/flows.json` and reports any structural errors. Once validation passes, your flow definition is live on the dashboard and ready to receive events from your instrumented functions.
+    Before sending anything, `publish` validates `.failpath/flows.json`, regenerates `.failpath/sdk.ts`, and reports any structural errors. Once validation passes, your flow definition is live on the dashboard and ready to receive events from your instrumented functions.
   </Step>
 </Steps>
 

@@ -6,6 +6,8 @@ description: "Full reference for all Failpath SDK configuration options, includi
 
 This page is the complete configuration reference for the Failpath SDK. It covers every option accepted by `createFailpathClient()`, the `run()` method, the `step()` method, and `recordStep()`. Use this as a quick lookup when you need to know a type, default value, or the exact behaviour of a particular option.
 
+If you use the generated `.failpath/sdk.ts` helper, these same options are available through `createTypedFailpathClient()`, with flow and step keys narrowed to the values in `.failpath/flows.json`.
+
 ## `createFailpathClient()` options
 
 Pass these options to `createFailpathClient()` when you initialise the SDK client.
@@ -153,7 +155,7 @@ Pass these options as the third argument to `run.step(stepKey, fn, options)`.
 Pass these as a single options object to `failpath.recordStep(options)`. All four parameters are required.
 
 <ParamField path="flowKey" type="string" required>
-  The slug of the flow this step belongs to. Must match the `flow.slug` value in `.failpath/flows.json`.
+  The slug of the flow this step belongs to. Must match the `flow.slug` value in `.failpath/flows.json`. With `createTypedFailpathClient()`, this can be typed from `failpathFlows`.
 </ParamField>
 
 <ParamField path="runId" type="string" required>
@@ -161,7 +163,7 @@ Pass these as a single options object to `failpath.recordStep(options)`. All fou
 </ParamField>
 
 <ParamField path="stepKey" type="string" required>
-  The key identifying this step within the flow. Must match the `sdkStepKey` of the corresponding node in `.failpath/flows.json`.
+  The key identifying this step within the flow. Must match the `sdkStepKey` of the corresponding node in `.failpath/flows.json`. With `createTypedFailpathClient()`, this is narrowed to the valid step keys for the selected flow.
 </ParamField>
 
 <ParamField path="status" type='"running" | "success" | "error" | "skipped"' required>

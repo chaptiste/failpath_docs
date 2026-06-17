@@ -8,6 +8,20 @@ description: "Create a Failpath client with createFailpathClient(). Configure yo
 
 ## Basic usage
 
+If your repository has `.failpath/sdk.ts`, prefer the generated typed helper:
+
+```typescript
+import { createTypedFailpathClient } from "../.failpath/sdk";
+
+export const failpath = createTypedFailpathClient({
+  projectKey: process.env.FAILPATH_PROJECT_KEY!,
+});
+```
+
+This wraps `createFailpathClient()` and narrows `run()`, `step()`, `skip()`, and `recordStep()` to the flow slugs and step keys in `.failpath/flows.json`.
+
+You can also create the base client directly:
+
 ```typescript
 import { createFailpathClient } from "@failpath/sdk";
 
