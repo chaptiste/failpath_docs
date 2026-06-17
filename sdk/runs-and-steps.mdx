@@ -32,7 +32,7 @@ The `runId` is the most important option to get right. Failpath uses it to group
 
 ## `run.step(stepKey, fn, options)`
 
-Wrap each business operation with `run.step()`. The SDK sends a `running` event before calling your function, then sends `success` with the return value or `error` with the thrown exception when your function finishes.
+Wrap each business operation with `run.step()`. The SDK queues a `running` event before calling your function, then queues `success` with the return value or `error` with the thrown exception when your function finishes.
 
 ```typescript
 const cart = await run.step("validate-cart", async () => {
@@ -43,6 +43,8 @@ const cart = await run.step("validate-cart", async () => {
 ```
 
 `step()` returns the value your function returns, so you can assign it and use it in subsequent steps exactly as you would without instrumentation. If your function throws, the SDK records the error and rethrows the original exception — your existing error handling continues to work without modification.
+
+Telemetry sends in the background by default. Call `failpath.flush()` before a short-lived process exits, or at the end of a serverless request when your platform does not expose a `waitUntil` hook.
 
 ### Options
 
@@ -75,6 +77,8 @@ await failpath.recordStep({
   stepKey: "manual-step",
   status: "success",
 });
+
+await failpath.flush();
 ```
 
 ### Parameters
@@ -84,7 +88,7 @@ await failpath.recordStep({
 | `flowKey` | `string` | ✓ | The slug of the flow this step belongs to. |
 | `runId` | `string` | ✓ | The run ID that groups this step with others in the same execution. |
 | `stepKey` | `string` | ✓ | The key identifying this step within the flow. |
-| `status` | `"running" \| "success" \| "error"` | ✓ | The status to record for this step. |
+| `status` | `"running" \| "success" \| "error" \| "skipped"` | ✓ | The status to record for this step. |
 
 ## Putting it all together
 
@@ -121,5 +125,7 @@ export async function handleCheckout(requestId: string) {
       return sendReceipt(cart);
     });
   }
+
+  await failpath.flush();
 }
 ```

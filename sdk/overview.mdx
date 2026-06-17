@@ -55,10 +55,15 @@ export async function handleCheckout(requestId: string) {
 
   // Explicitly skip an optional step
   await run.skip("send-receipt-email");
+
+  // Drain queued telemetry before the request or process ends
+  await failpath.flush();
 }
 ```
 
-Each `step()` call sends a `running` event before your function executes, then sends `success` or `error` when it completes. If the wrapped function throws, the SDK records the error and rethrows the original exception so your application error handling remains intact.
+Each `step()` call queues a `running` event before your function executes, then queues `success` or `error` when it completes. Telemetry sends in the background by default, so instrumentation does not add network latency to your request path. Call `failpath.flush()` before a short-lived process exits, or at the end of a serverless request when your runtime does not provide a `waitUntil` hook.
+
+If the wrapped function throws, the SDK records the error and rethrows the original exception so your application error handling remains intact.
 
 ## Feature highlights
 
@@ -66,8 +71,8 @@ Each `step()` call sends a `running` event before your function executes, then s
   <Card title="TypeScript-first" icon="code">
     Full type declarations are included in the package. No separate `@types` install needed.
   </Card>
-  <Card title="Fire-and-forget telemetry" icon="bolt">
-    Telemetry sends are non-blocking by default. A failed send never crashes your handler unless you opt in with `throwOnSendError`.
+  <Card title="Background telemetry" icon="bolt">
+    Telemetry sends run in the background by default. Use `flush()` or a runtime `waitUntil` hook when you need deterministic delivery.
   </Card>
   <Card title="Automatic error capture" icon="circle-exclamation">
     When a wrapped step throws, the SDK records the error event and rethrows the original error — no extra try/catch required.
@@ -81,6 +86,9 @@ Each `step()` call sends a `running` event before your function executes, then s
   <Card title="Custom fetch" icon="plug">
     Supply your own `fetch` implementation for runtimes that lack a native one, such as older Node.js versions or edge environments.
   </Card>
+  <Card title="Test helper" icon="test-tube">
+    Import `createMockFailpathClient()` from `@failpath/sdk/testing` to capture events in automated tests without network calls.
+  </Card>
 </CardGroup>
 
 ## Explore the SDK
@@ -91,6 +99,9 @@ Each `step()` call sends a `running` event before your function executes, then s
   </Card>
   <Card title="Runs & Steps" icon="list-check" href="/sdk/runs-and-steps">
     Learn how to start a run, instrument steps, skip branches, and record events manually.
+  </Card>
+  <Card title="Testing" icon="test-tube" href="/sdk/testing">
+    Use the mock client to assert emitted events in unit and integration tests.
   </Card>
   <Card title="Options" icon="sliders" href="/sdk/options">
     Full reference for every configuration option across the client, run, step, and `recordStep` APIs.

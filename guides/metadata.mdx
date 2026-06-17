@@ -61,6 +61,8 @@ export async function handleCheckout(requestId: string, user: User, cart: Cart) 
   await run.step("validate-cart", async () => {
     return validateCart();
   }, { metadata: { cartId: cart.id } });
+
+  await failpath.flush();
 }
 ```
 

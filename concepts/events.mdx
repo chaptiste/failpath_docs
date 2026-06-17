@@ -57,19 +57,25 @@ await failpath.recordStep({
 });
 ```
 
-`recordStep()` accepts any of the three statuses. Use it to fill in parts of a flow that the SDK cannot instrument automatically, so your dashboard graph reflects the full picture.
+`recordStep()` accepts `running`, `success`, `error`, or `skipped`. Use it to fill in parts of a flow that the SDK cannot instrument automatically, so your dashboard graph reflects the full picture.
 
-## Async and fire-and-forget sending
+## Background delivery
 
-By default, Failpath sends events asynchronously. Sending does not block your application code — the SDK dispatches the event in the background and your function continues executing immediately. This means that in most cases, Failpath adds no measurable latency to your request path.
+By default, Failpath sends events asynchronously. Sending does not block your application code — the SDK queues the event, drains the queue in the background, and your function continues executing immediately. This means that in most cases, Failpath adds no measurable latency to your request path.
 
-If a send fails, the SDK silently swallows the error by default. You can configure an `onError` callback on the client to observe telemetry send failures, or set `throwOnSendError: true` if you want send errors to surface as exceptions.
+If a send fails, the SDK swallows the error by default. You can configure an `onError` callback on the client to observe telemetry send failures. If you set `throwOnSendError: true`, call `failpath.flush()` to surface queued delivery failures.
 
 ```typescript
 const failpath = createFailpathClient({
   projectKey: process.env.FAILPATH_PROJECT_KEY!,
   onError: (err) => console.error("Failpath send error:", err),
 });
+```
+
+Call `flush()` before a short-lived process exits, or at the end of a serverless request if your runtime does not provide a `waitUntil` hook:
+
+```typescript
+await failpath.flush();
 ```
 
 <Warning>

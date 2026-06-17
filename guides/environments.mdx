@@ -50,6 +50,22 @@ const failpath = createFailpathClient({
 
 The `?? "test"` fallback ensures the SDK does not throw when `FAILPATH_PROJECT_KEY` is not set in your test environment.
 
+If your tests need to assert which events are emitted, use the mock client instead:
+
+```typescript
+import { createMockFailpathClient } from "@failpath/sdk/testing";
+
+const failpath = createMockFailpathClient();
+const run = failpath.run("checkout", { runId: "test_run" });
+
+await run.step("validate-cart", async () => "ok");
+
+expect(failpath.events).toMatchObject([
+  { flowKey: "checkout", stepKey: "validate-cart", status: "running" },
+  { flowKey: "checkout", stepKey: "validate-cart", status: "success" },
+]);
+```
+
 ## Local API development
 
 If you are developing against a local instance of the Failpath API itself, you can override the default endpoint (`https://api.failpath.dev`) by setting `FAILPATH_DEV_ENDPOINT` in your shell, or by passing `--endpoint` to any CLI command:

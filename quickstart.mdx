@@ -65,10 +65,14 @@ This guide walks you through everything you need to go from zero to a live, moni
       await run.step("charge-card", async () => {
         return chargeCard(cart);
       });
+
+      await failpath.flush();
     }
     ```
 
-    Each call to `step()` sends a `running` event before the wrapped function executes, then a `success` or `error` event when it completes. If the function throws, the SDK records the error and rethrows the original exception — your existing error handling is not affected.
+    Each call to `step()` queues a `running` event before the wrapped function executes, then queues a `success` or `error` event when it completes. Telemetry sends in the background by default. Call `flush()` before a short-lived process exits, or use a platform `waitUntil` hook when your runtime provides one.
+
+    If the function throws, the SDK records the error and rethrows the original exception — your existing error handling is not affected.
 
     <Tip>
       Use the same `runId` for every step in a single request, job, or webhook. Passing your request ID keeps all related steps grouped together in the dashboard.

@@ -93,10 +93,12 @@ This guide walks you through instrumenting a backend function with Failpath from
       await run.step("send-receipt-email", async () => {
         return sendReceiptEmail(charge.receiptAddress);
       });
+
+      await failpath.flush();
     }
     ```
 
-    Each `step()` call sends a `running` event before the wrapped operation executes, then sends `success` or `error` when it finishes.
+    Each `step()` call queues a `running` event before the wrapped operation executes, then queues `success` or `error` when it finishes. Sends run in the background by default, so call `flush()` before a short-lived request, job, or script exits unless your runtime keeps background work alive with `waitUntil`.
 
     <Tip>
       Wrap business steps like `validateCart`, `chargeCard`, and `sendReceiptEmail` — not tiny helpers, utility functions, or repository calls. Each wrapped step should represent a meaningful unit of work you want to track on your dashboard.

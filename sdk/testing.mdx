@@ -1,0 +1,132 @@
+---
+title: "Testing Failpath Instrumentation with the Mock SDK Client"
+sidebarTitle: "Testing"
+description: "Use @failpath/sdk/testing to capture Failpath events in automated tests without sending network requests."
+---
+
+Use the testing entrypoint when you want automated tests to verify that your code emits the right Failpath events. The mock client implements the same `run()`, `step()`, `skip()`, `recordStep()`, and `flush()` methods as the production client, but it captures events in memory instead of sending requests.
+
+```typescript
+import { createMockFailpathClient } from "@failpath/sdk/testing";
+```
+
+## Basic test
+
+```typescript
+import { expect, test } from "vitest";
+import { createMockFailpathClient } from "@failpath/sdk/testing";
+
+test("records checkout steps", async () => {
+  const failpath = createMockFailpathClient({
+    defaultMetadata: { env: "test" },
+  });
+  const run = failpath.run("checkout", {
+    runId: "test_run_123",
+    metadata: { route: "/checkout" },
+  });
+
+  const result = await run.step(
+    "validate-cart",
+    async () => {
+      return "valid";
+    },
+    { metadata: { cartId: "cart_123" } },
+  );
+
+  await run.skip("send-receipt-email");
+
+  expect(result).toBe("valid");
+  expect(failpath.events).toMatchObject([
+    {
+      flowKey: "checkout",
+      runId: "test_run_123",
+      stepKey: "validate-cart",
+      status: "running",
+    },
+    {
+      flowKey: "checkout",
+      runId: "test_run_123",
+      stepKey: "validate-cart",
+      status: "success",
+      metadata: {
+        env: "test",
+        route: "/checkout",
+        cartId: "cart_123",
+      },
+    },
+    {
+      flowKey: "checkout",
+      runId: "test_run_123",
+      stepKey: "send-receipt-email",
+      status: "skipped",
+    },
+  ]);
+});
+```
+
+## Error assertions
+
+The mock client preserves the production SDK's application error behavior. If the wrapped operation throws, `step()` records an `error` event and rethrows the original error.
+
+```typescript
+const failpath = createMockFailpathClient({
+  captureStack: true,
+});
+const run = failpath.run("checkout", { runId: "test_run_456" });
+const originalError = new Error("card_declined");
+
+await expect(
+  run.step("charge-card", async () => {
+    throw originalError;
+  }),
+).rejects.toBe(originalError);
+
+expect(failpath.events.at(-1)).toMatchObject({
+  flowKey: "checkout",
+  runId: "test_run_456",
+  stepKey: "charge-card",
+  status: "error",
+  error: {
+    name: "Error",
+    message: "card_declined",
+  },
+});
+```
+
+## Reset between tests
+
+Call `reset()` when you reuse the same mock client across multiple tests.
+
+```typescript
+failpath.reset();
+
+expect(failpath.events).toHaveLength(0);
+```
+
+## Observe events as they happen
+
+Pass `onEvent` when you want to mirror captured events into another assertion helper or logger.
+
+```typescript
+const seen: string[] = [];
+const failpath = createMockFailpathClient({
+  onEvent: (event) => {
+    seen.push(`${event.stepKey}:${event.status}`);
+  },
+});
+```
+
+## Mock client or `enabled: false`?
+
+Use the mock client when the emitted events are part of the behavior you want to test. Use `enabled: false` when you only want Failpath instrumentation to be inert and you do not care which events would have been recorded.
+
+```typescript
+import { createFailpathClient } from "@failpath/sdk";
+
+const failpath = createFailpathClient({
+  projectKey: "test",
+  enabled: false,
+});
+```
+
+The mock client does not need a real project key and never sends network requests.

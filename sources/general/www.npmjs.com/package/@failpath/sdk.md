@@ -37,10 +37,14 @@ export async function handleCheckout(requestId: string) {
   await run.step("charge-card", async () => {
     return chargeCard(cart);
   });
+
+  await failpath.flush();
 }
 ```
 
-`step()` sends a `running` event before the wrapped operation and then sends `success` or `error` when it finishes. If the wrapped operation throws, the SDK records the error and rethrows the original application error.
+`step()` queues a `running` event before the wrapped operation and then queues `success` or `error` when it finishes. Sends run in the background by default. Call `flush()` before a short-lived process exits, or pass a runtime `waitUntil` hook when available.
+
+If the wrapped operation throws, the SDK records the error and rethrows the original application error.
 
 ## API
 
@@ -67,6 +71,18 @@ await failpath.recordStep({
   stepKey: "manual-step",
   status: "success",
 });
+
+await failpath.flush();
+```
+
+## Testing
+
+Use the testing entrypoint to capture Failpath events in memory without sending requests during tests.
+
+```ts
+import { createMockFailpathClient } from "@failpath/sdk/testing";
+
+const failpath = createMockFailpathClient();
 ```
 
 ## Options
@@ -76,7 +92,11 @@ await failpath.recordStep({
 - `enabled`: set to `false` to disable event sending.
 - `defaultMetadata`: metadata merged into every event.
 - `captureStack`: include error stacks. Defaults to `false`.
+- `delivery`: telemetry delivery mode. Defaults to `"background"`. Use `"await"` to wait for each send before continuing.
 - `throwOnSendError`: throw telemetry send errors. Defaults to `false`.
+- `sendTimeoutMs`: maximum time to wait for each telemetry send. Defaults to `1500`. Set to `0` to disable the timeout.
+- `maxQueueSize`: maximum queued background events before new events are dropped. Defaults to `1000`.
+- `waitUntil`: optional hook for runtimes that can keep background promises alive after the handler returns.
 - `onError`: callback for telemetry send errors.
 - `fetch`: custom fetch implementation.
 

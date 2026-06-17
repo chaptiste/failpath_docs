@@ -43,8 +43,31 @@ Pass these options to `createFailpathClient()` when you initialise the SDK clien
   When `true`, the SDK attaches the stack trace of any caught error to the outbound error event. Keep this disabled (the default) if your errors might contain sensitive data or if stack traces are prohibitively large.
 </ParamField>
 
+<ParamField path="delivery" type='"background" | "await"' default='"background"'>
+  Controls whether telemetry sends run in the background or block the SDK call until the send finishes. `"background"` keeps instrumentation off your latency path. `"await"` preserves deterministic send completion for scripts, local tooling, or runtimes where background work cannot continue after the handler returns.
+</ParamField>
+
 <ParamField path="throwOnSendError" type="boolean" default="false">
-  When `true`, the SDK throws if a telemetry send request fails. The default (`false`) means telemetry failures are swallowed and do not affect your application. Only enable this when strict delivery guarantees are required.
+  When `true`, the SDK throws if a telemetry send request fails. With background delivery, queued failures surface from `failpath.flush()`. With `delivery: "await"`, the individual SDK call can throw. The default (`false`) means telemetry failures are swallowed and do not affect your application.
+</ParamField>
+
+<ParamField path="sendTimeoutMs" type="number" default="1500">
+  Maximum time, in milliseconds, to wait for each telemetry send. The SDK aborts the request after this timeout and reports the failure through `onError`. Set this to `0` to disable the timeout.
+</ParamField>
+
+<ParamField path="maxQueueSize" type="number" default="1000">
+  Maximum number of background events to keep in memory. When the queue is full, the SDK drops new events and calls `onError` if provided.
+</ParamField>
+
+<ParamField path="waitUntil" type="(promise: Promise<void>) => void">
+  Optional hook for edge or serverless runtimes that can keep background work alive after the request handler returns.
+
+  ```typescript
+  createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    waitUntil: (promise) => context.waitUntil(promise),
+  });
+  ```
 </ParamField>
 
 <ParamField path="onError" type="(err: unknown) => void">
@@ -74,6 +97,16 @@ Pass these options to `createFailpathClient()` when you initialise the SDK clien
   });
   ```
 </ParamField>
+
+## `failpath.flush()`
+
+Call `flush()` to wait for queued background telemetry to finish sending.
+
+```typescript
+await failpath.flush();
+```
+
+Use `flush()` before a short-lived process exits, at the end of a request when your runtime does not expose `waitUntil`, or in tests that need deterministic event delivery. If `throwOnSendError` is `true`, `flush()` rejects with the first queued delivery error.
 
 ---
 
@@ -131,8 +164,8 @@ Pass these as a single options object to `failpath.recordStep(options)`. All fou
   The key identifying this step within the flow. Must match the `sdkStepKey` of the corresponding node in `.failpath/flows.json`.
 </ParamField>
 
-<ParamField path="status" type='"running" | "success" | "error"' required>
-  The status to record for this step event. Send `running` when the operation begins and then `success` or `error` when it completes, or send a terminal status directly if you are recording after the fact.
+<ParamField path="status" type='"running" | "success" | "error" | "skipped"' required>
+  The status to record for this step event. Use `running` when the operation begins and then `success` or `error` when it completes, use `skipped` for a branch that did not run, or send a terminal status directly if you are recording after the fact.
 </ParamField>
 
 ---

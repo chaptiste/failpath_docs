@@ -76,6 +76,7 @@
               "sdk/overview",
               "sdk/client",
               "sdk/runs-and-steps",
+              "sdk/testing",
               "sdk/options"
             ]
           },

@@ -10,7 +10,7 @@ Failpath is a flow monitoring tool that tracks every step of your backend workfl
 
 Failpath is built around two packages that work together. The **CLI** (`failpath`) manages flow graphs: you run `npx failpath init` once to connect your repository to a Failpath project, which writes your dashboard's current flow definition to `.failpath/flows.json`. From there, `npx failpath publish` pushes local edits to the dashboard, and `npx failpath sync` pulls dashboard changes back into your repo.
 
-The **SDK** (`@failpath/sdk`) handles runtime instrumentation. You wrap your backend functions with `createFailpathClient`, then call `run()` to start a named flow run and `step()` around each logical unit of work. Every `step()` call fires a `running` event before the operation starts, then a `success` or `error` event when it finishes. If the wrapped function throws, the SDK records the error and rethrows the original exception so your application error handling stays intact.
+The **SDK** (`@failpath/sdk`) handles runtime instrumentation. You wrap your backend functions with `createFailpathClient`, then call `run()` to start a named flow run and `step()` around each logical unit of work. Every `step()` call queues a `running` event before the operation starts, then queues a `success` or `error` event when it finishes. If the wrapped function throws, the SDK records the error and rethrows the original exception so your application error handling stays intact.
 
 Together, the CLI defines what your flows look like and the SDK reports what actually happened during each execution.
 
@@ -19,7 +19,7 @@ Together, the CLI defines what your flows look like and the SDK reports what act
 - **Flows** — A named sequence of steps that represents one logical backend process, such as `checkout` or `send-invoice`. Flows are defined in `.failpath/flows.json` and managed with the CLI.
 - **Runs** — A single execution of a flow, identified by a `runId` you supply (typically a request ID or job ID). Every step in the same request shares the same run.
 - **Steps** — The individual units of work within a run, each identified by a `stepKey` that matches the `sdkStepKey` in your flow definition.
-- **Events** — The status signals (`running`, `success`, `error`, `skip`) that the SDK sends to the Failpath API as each step executes.
+- **Events** — The status signals (`running`, `success`, `error`, `skipped`) that the SDK records as each step executes.
 
 <CardGroup cols={2}>
   <Card title="Quick Start" icon="rocket" href="/quickstart">

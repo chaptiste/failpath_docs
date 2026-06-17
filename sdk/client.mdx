@@ -49,8 +49,31 @@ const failpath = createFailpathClient({
   When `true`, the SDK includes the stack trace from any error caught inside a `step()` call in the outbound error event. Disable this (the default) if your error objects contain sensitive data or if stack traces are too large to send efficiently.
 </ParamField>
 
+<ParamField path="delivery" type='"background" | "await"' default='"background"'>
+  Controls whether telemetry sends run in the background or block the SDK call until the send finishes. The default, `"background"`, keeps Failpath off your request latency path. Use `"await"` when you want deterministic send completion for scripts, local tools, or runtimes where background work may be stopped immediately.
+</ParamField>
+
 <ParamField path="throwOnSendError" type="boolean" default="false">
-  When `true`, the SDK throws an error if a telemetry send request fails. The default (`false`) means telemetry failures are silent — your application continues normally even if Failpath is unreachable. Only enable this if you need strict delivery guarantees in a controlled environment.
+  When `true`, the SDK throws an error if a telemetry send request fails. With background delivery, call `flush()` to surface queued delivery failures. With `delivery: "await"`, the individual SDK call can throw. The default (`false`) means telemetry failures are silent — your application continues normally even if Failpath is unreachable.
+</ParamField>
+
+<ParamField path="sendTimeoutMs" type="number" default="1500">
+  Maximum time, in milliseconds, that a single telemetry send can wait before the SDK aborts it. Set this to `0` to disable the timeout. Keep a finite timeout in production so a hanging network request cannot hold open a flush forever.
+</ParamField>
+
+<ParamField path="maxQueueSize" type="number" default="1000">
+  Maximum number of background events that can wait in memory. When the queue is full, new events are dropped and `onError` is called if provided. This protects your process from unbounded memory growth during an extended outage.
+</ParamField>
+
+<ParamField path="waitUntil" type="(promise: Promise<void>) => void">
+  Optional hook for runtimes that can keep background work alive after your handler returns. Pass your platform's `waitUntil` implementation when available.
+
+  ```typescript
+  const failpath = createFailpathClient({
+    projectKey: process.env.FAILPATH_PROJECT_KEY!,
+    waitUntil: (promise) => context.waitUntil(promise),
+  });
+  ```
 </ParamField>
 
 <ParamField path="onError" type="(err: unknown) => void">
@@ -77,6 +100,16 @@ const failpath = createFailpathClient({
   ```
 </ParamField>
 
+## Flushing background events
+
+The client exposes `flush()` for deterministic delivery. Use it before a short-lived process exits, at the end of a serverless request when you do not have `waitUntil`, or in tests that assert sent events.
+
+```typescript
+await failpath.flush();
+```
+
+`flush()` resolves when all queued events have either sent or failed. If `throwOnSendError` is `true`, it rejects with the first queued delivery error.
+
 <Note>
-  Set `enabled: false` in your test environment to prevent test runs from sending events to Failpath. You can do this by reading an environment variable: `enabled: process.env.NODE_ENV !== "test"`. Your wrapped functions continue to execute and return values normally, so your tests remain unaffected.
+  Use the mock client from `@failpath/sdk/testing` in automated tests when you want to assert emitted events. Use `enabled: false` only when you want instrumentation to be inert.
 </Note>

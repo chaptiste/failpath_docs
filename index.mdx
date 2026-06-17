@@ -64,6 +64,8 @@ Follow these four steps to go from a blank repo to a live, monitored flow on the
       await run.step("charge-card", async () => {
         return chargeCard(cart);
       });
+
+      await failpath.flush();
     }
     ```
   </Step>

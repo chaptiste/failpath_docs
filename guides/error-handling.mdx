@@ -43,13 +43,15 @@ const failpath = createFailpathClient({
 
 ### Throw on send errors (`throwOnSendError: true`)
 
-Set `throwOnSendError: true` if you want the SDK to throw when a telemetry send fails. This is useful in integration tests or CI pipelines where you want to detect SDK misconfiguration early, but it is not recommended for production use.
+Set `throwOnSendError: true` if you want the SDK to throw when a telemetry send fails. With the default background delivery mode, queued delivery errors surface from `failpath.flush()`. With `delivery: "await"`, the individual `recordStep()` or `step()` call can throw. This is useful in integration tests or CI pipelines where you want to detect SDK misconfiguration early, but it is not recommended for production use.
 
 ```typescript
 const failpath = createFailpathClient({
   projectKey: process.env.FAILPATH_PROJECT_KEY!,
   throwOnSendError: true,
 });
+
+await failpath.flush();
 ```
 
 ## Capturing stack traces
@@ -66,5 +68,5 @@ const failpath = createFailpathClient({
 Stack traces increase payload size, so consider enabling this selectively — for example, only in staging environments where debugging detail is more valuable.
 
 <Note>
-  Set `enabled: false` in test environments to prevent the SDK from sending any telemetry at all. When disabled, `step()` still executes the wrapped function and returns its result — only the event sending is skipped. This makes it safe to run your test suite without needing a real project key or network access.
+  For unit and integration tests, prefer the mock client from `@failpath/sdk/testing` when you want to assert which events your code emits. Use `enabled: false` when you only want instrumentation to be inert.
 </Note>
