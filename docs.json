@@ -3,8 +3,8 @@
   "name": "Failpath",
   "theme": "luma",
   "logo": {
-    "light": "/images/failpath-logo-light.svg",
-    "dark": "/images/failpath-logo-dark.svg"
+    "light": "/images/logo.png",
+    "dark": "/images/logo.png"
   },
   "favicon": "/images/failpath-favicon.svg",
   "appearance": {
