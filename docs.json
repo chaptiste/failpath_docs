@@ -18,9 +18,9 @@
     }
   },
   "colors": {
-    "primary": "#ef4444",
-    "light": "#f7f7f8",
-    "dark": "#dc2626"
+    "primary": "#3f3f46",
+    "light": "#52525b",
+    "dark": "#d4d4d8"
   },
   "fonts": {
     "heading": {
@@ -43,53 +43,48 @@
     }
   },
   "navigation": {
-    "tabs": [
+    "groups": [
       {
-        "tab": "Documentation",
-        "groups": [
-          {
-            "group": "Get Started",
-            "pages": [
-              "introduction",
-              "quickstart"
-            ]
-          },
-          {
-            "group": "Core Concepts",
-            "pages": [
-              "concepts/flows",
-              "concepts/runs-and-steps",
-              "concepts/events"
-            ]
-          },
-          {
-            "group": "CLI",
-            "pages": [
-              "cli/overview",
-              "cli/commands",
-              "cli/configuration"
-            ]
-          },
-          {
-            "group": "SDK",
-            "pages": [
-              "sdk/overview",
-              "sdk/typed-keys",
-              "sdk/client",
-              "sdk/runs-and-steps",
-              "sdk/testing",
-              "sdk/options"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/instrument-a-flow",
-              "guides/metadata",
-              "guides/error-handling",
-              "guides/environments"
-            ]
-          }
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Core Concepts",
+        "pages": [
+          "concepts/flows",
+          "concepts/runs-and-steps",
+          "concepts/events"
+        ]
+      },
+      {
+        "group": "CLI",
+        "pages": [
+          "cli/overview",
+          "cli/commands",
+          "cli/configuration"
+        ]
+      },
+      {
+        "group": "SDK",
+        "pages": [
+          "sdk/overview",
+          "sdk/typed-keys",
+          "sdk/client",
+          "sdk/runs-and-steps",
+          "sdk/testing",
+          "sdk/options"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/instrument-a-flow",
+          "guides/metadata",
+          "guides/error-handling",
+          "guides/environments"
         ]
       }
     ]
