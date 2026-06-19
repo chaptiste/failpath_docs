@@ -1,33 +1,23 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
+# Documentation Project Instructions
 
-# Documentation project instructions
+This folder contains the public Failpath documentation site built with Mintlify.
 
-## About this project
+## Content rules
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
-- Pages are MDX files with YAML frontmatter
-- Configuration lives in `docs.json`
-- Use the Mintlify MCP server, `https://mcp.mintlify.com`, to edit content and settings via MCP
-- Use the Mintlify docs MCP server, `https://www.mintlify.com/docs/mcp`, to query information about using Mintlify via MCP
+- Write for backend engineers adding observability to request, job, and webhook flows.
+- Use active voice and second person.
+- Use sentence case for headings.
+- Use `Failpath` for the product, `failpath` for the CLI command, and `@failpath/sdk` for the SDK package.
+- Format file names, commands, paths, package names, and environment variables as code.
+- Do not document internal admin features or implementation details from the app unless they affect CLI, SDK, or ingestion behavior.
 
-## Terminology
+## Endpoint rules
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- Public docs should treat `https://api.failpath.dev` as the default API endpoint.
+- Mention `FAILPATH_DEV_ENDPOINT` only as a local development override for people working on the Failpath API itself.
 
-## Style preferences
+## Mintlify rules
 
-{/* Add any project-specific style rules below */}
-
-- Use active voice and second person ("you")
-- Keep sentences concise — one idea per sentence
-- Use sentence case for headings
-- Bold for UI elements: Click **Settings**
-- Code formatting for file names, commands, paths, and code references
-
-## Content boundaries
-
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+- Pages are MDX files with YAML frontmatter.
+- Navigation and branding live in `docs.json`.
+- Use Mintlify components only when they clarify a task or reference page.
